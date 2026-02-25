@@ -6,9 +6,9 @@ import bcrypt from "bcrypt";
 import { sendVerificationCode } from "../utils/sendVerificationCode.js";
 import { sendToken } from "../utils/sendToken.js"; 
 
-// 1. Register User
+// 1. Register User (Or Admin)
 export const register = catchAsyncErrors(async (req, res, next) => {
-    const { name, email, password } = req.body;
+    const { name, email, password, adminSecret } = req.body;
 
     if (!name || !email || !password) {
         return next(new ErrorHandler("Please enter all Fields.", 400));
@@ -16,6 +16,16 @@ export const register = catchAsyncErrors(async (req, res, next) => {
 
     if (password.length < 8 || password.length > 16) {
         return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
+    }
+
+    let assignedRole = "User"; 
+    
+    if (adminSecret) {
+        if (adminSecret === process.env.ADMIN_SECRET_KEY) {
+            assignedRole = "Admin"; 
+        } else {
+            return next(new ErrorHandler("Invalid Admin Secret Key.", 400)); 
+        }
     }
 
     const verifiedUserQuery = await db.collection("users")
@@ -56,7 +66,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     } else {
         await db.collection("users").add({
             ...userData,
-            role: "User",
+            role: assignedRole, 
             borrowedBooks: [],
             createdAt: new Date(),
         });
