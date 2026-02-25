@@ -89,7 +89,7 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const userData = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-    if (userData.verificationCode !== otp || userData.verificationCodeExpire.toDate() < new Date()) {
+    if (String(userData.verificationCode) !== String(otp) || userData.verificationCodeExpire.toDate() < new Date()) {
         return next(new ErrorHandler("Invalid or expired OTP", 400));
     }
 
