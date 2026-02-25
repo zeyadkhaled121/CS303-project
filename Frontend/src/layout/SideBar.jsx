@@ -7,14 +7,17 @@ import bookIcon from "../assets/book.png";
 import catalogIcon from "../assets/catalog.png";
 import settingIcon from "../assets/setting-white.png";
 import usersIcon from "../assets/people.png";
+import AddNewAdminPopup from "../popups/AddNewAdmin";
 import { RiAdminFill } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
 import { toast } from "react-toastify"; 
 import { logout, resetAuthSlice } from "../store/slices/authSlice"; 
-
+import { toggleAddNewAdminPopup, toggleSettingPopup } from "../store/slices/popUpSlice";
+import AddNewAdmin from "../popups/AddNewAdmin";
+// import { useSelector } from "react-redux";
 const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
   const dispatch = useDispatch();
-
+  const{AddNewAdminPopup} = useSelector (state => state.popup);
   // Extract auth state from Redux store
   const { loading, error, message, isAuthenticated, user } = useSelector(
     (state) => state.auth
@@ -70,8 +73,8 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           </button>
 
           {/* Admin Restricted Routes */}
-          {isAuthenticated && user?.role === "Admin" && (
-            <>
+          {/* {isAuthenticated && user?.role === "Admin" && (
+            <> } */}
               <button
                 onClick={() => { setSelectedComponent("Catalog"); setIsSideBarOpen(false); }}
                 className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
@@ -85,13 +88,16 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
                 <img src={usersIcon} alt="users" className="w-5" /> <span>Users</span>
               </button>
               <button
-                onClick={() => { setSelectedComponent("Add New Admin"); setIsSideBarOpen(false); }}
+              
                 className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-3 transition-colors"
+                onClick={() =>  dispatch (toggleAddNewAdminPopup()) }
               >
                 <RiAdminFill className="w-6 h-5" /> <span>Add New Admin</span>
               </button>
-            </>
-          )}
+            
+             {/* </> */}
+              {/* )} */}
+          
 
           {/* User Restricted Routes */}
           {isAuthenticated && user?.role === "User" && (
@@ -129,6 +135,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           className="absolute top-4 right-4 cursor-pointer block md:hidden w-fit h-fit"
         />
       </aside>
+      {AddNewAdminPopup && <AddNewAdmin/>}
     </>
   );
 };
