@@ -9,7 +9,6 @@ export function generateVerificationOtpEmailTemplate(otpCode) {
 </head>
 <body style="margin: 0; padding: 0; background-color: #111111; font-family: 'Segoe UI', Inter, Roboto, 'Helvetica Neue', Arial, sans-serif; -webkit-font-smoothing: antialiased; -moz-osx-font-smoothing: grayscale;">
 
-  <!-- Outer wrapper table for full-width background -->
   <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #111111;">
     <tr>
       <td align="center" style="padding: 40px 16px;">
@@ -18,7 +17,7 @@ export function generateVerificationOtpEmailTemplate(otpCode) {
 
           <tr>
             <td align="center" style="padding: 32px 24px 24px 24px; border-bottom: 1px solid #2a2a2a;">
-              <!-- Logo placeholder — replace src with your hosted logo -->
+            
               <table role="presentation" cellpadding="0" cellspacing="0" border="0">
                 <tr>
                   <td align="center" valign="middle" style="padding-right: 10px;">
