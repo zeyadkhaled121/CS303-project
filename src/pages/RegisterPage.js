@@ -17,33 +17,84 @@ function RegisterPage() {
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
+    const fieldValue = type === 'checkbox' ? checked : value;
+
+    // update form data
     setFormData({
       ...formData,
-      [name]: type === 'checkbox' ? checked : value,
+      [name]: fieldValue,
     });
+
+    // clear error for this field as user modifies it
+    if (errors[name]) {
+      setErrors((prev) => {
+        const { [name]: removed, ...rest } = prev;
+        return rest;
+      });
+    }
+
+    // clear generic errors when the user interacts again
+    if (errors.general) {
+      setErrors((prev) => {
+        const { general, ...rest } = prev;
+        return rest;
+      });
+    }
   };
 
-  const handleSubmit = (e) => {
+  // helper for client-side email format validation
+  const validateEmail = (email) => {
+    // simple regex; avoids sending nonsense to the server
+    const re = /^\S+@\S+\.\S+$/;
+    return re.test(email);
+  };
+
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    // Basic validation
+
+    // perform client-side validation before attempting network request
     const newErrors = {};
 
     if (!formData.firstName.trim()) newErrors.firstName = 'First name is required';
     if (!formData.lastName.trim()) newErrors.lastName = 'Last name is required';
-    if (!formData.email.trim()) newErrors.email = 'Email is required';
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required';
+    } else if (!validateEmail(formData.email)) {
+      newErrors.email = 'Invalid email format';
+    }
     if (formData.password.length < 6) newErrors.password = 'Password must be at least 6 characters';
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = 'Passwords do not match';
     }
     if (!formData.termsAccepted) newErrors.termsAccepted = 'You must accept the terms';
 
-    if (Object.keys(newErrors).length === 0) {
-      console.log('Register:', formData);
-      // Add registration logic here
-      // For demo, navigate to login on successful registration
-      navigate('/login');
-    } else {
+    if (Object.keys(newErrors).length > 0) {
+      // set errors and abort submission
       setErrors(newErrors);
+      return;
+    }
+
+    try {
+      // call the backend API; assuming server is running on same host under /api
+      const resp = await fetch('/api/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+      const data = await resp.json();
+      if (!resp.ok) {
+        // server returned validation or other error
+        // we display server message as a general error; refine as needed
+        setErrors({ general: data.message || 'Registration failed' });
+      } else {
+        // successful registration - server already sent verification email
+        // redirect user to login / verification page
+        navigate('/login');
+      }
+    } catch (err) {
+      // network or unexpected error
+      setErrors({ general: 'Unable to connect to server. Please try again.' });
+      console.error('Registration error', err);
     }
   };
 
@@ -62,6 +113,10 @@ function RegisterPage() {
 
           {/* Form Section */}
           <form onSubmit={handleSubmit} className="register-form">
+            {/* general/server error */}
+            {errors.general && (
+              <div className="error-text error-general">{errors.general}</div>
+            )}
             {/* Name Fields */}
             <div className="form-row">
               <div className="form-group half">
