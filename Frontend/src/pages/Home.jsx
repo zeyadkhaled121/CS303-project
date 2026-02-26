@@ -14,11 +14,11 @@ const Home = () => {
   const [isSideBarOpen, setIsSideBarOpen] = useState(false);
   const [selectedComponent, setSelectedComponent] = useState("");
 
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, loading } = useSelector((state) => state.auth);
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to={"/login"} />;
-  // }
+  if (!isAuthenticated && !loading) {
+    return <Navigate to={"/login"} />;
+  }
 
   return (
     <>
@@ -58,9 +58,7 @@ const Home = () => {
               }
               break;
             case "My Borrowed Books":
-              if (user?.role === "Admin") {
-                return <MyBorrowedBooks />;
-              }
+              return <MyBorrowedBooks />;
               break;
             default:
               return user?.role === "User" ? (

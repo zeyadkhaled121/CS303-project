@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import logo_with_title from "../assets/logo-with-title.png";
+import whiteLogo from "../assets/white-logo.png";
 import logoutIcon from "../assets/logout.png";
 import closeIcon from "../assets/white-close-icon.png";
 import dashboardIcon from "../assets/element.png";
@@ -7,17 +7,16 @@ import bookIcon from "../assets/book.png";
 import catalogIcon from "../assets/catalog.png";
 import settingIcon from "../assets/setting-white.png";
 import usersIcon from "../assets/people.png";
-import AddNewAdminPopup from "../popups/AddNewAdmin";
+import AddNewAdmin from "../popups/AddNewAdmin";
 import { RiAdminFill } from "react-icons/ri";
 import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify"; 
-import { logout, resetAuthSlice } from "../store/slices/authSlice"; 
-import { toggleAddNewAdminPopup, toggleSettingPopup } from "../store/slices/popUpSlice";
-import AddNewAdmin from "../popups/AddNewAdmin";
-// import { useSelector } from "react-redux";
+import { toast } from "react-toastify";
+import { logout, resetAuthSlice } from "../store/slices/authSlice";
+import { toggleAddNewAdminPopup } from "../store/slices/popUpSlice";
+
 const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
   const dispatch = useDispatch();
-  const{AddNewAdminPopup} = useSelector (state => state.popup);
+  const { AddNewAdminPopup: isAddNewAdminOpen } = useSelector((state) => state.popup);
   // Extract auth state from Redux store
   const { loading, error, message, isAuthenticated, user } = useSelector(
     (state) => state.auth
@@ -50,8 +49,10 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
         style={{ position: "fixed" }}
       >
         {/* Sidebar Header: Logo Section */}
-        <div className="px-6 py-4 my-8 flex justify-center">
-          <img src={logo_with_title} alt="logo" className="w-40" />
+        <div className="px-6 py-4 my-8 flex flex-col items-center">
+          <img src={whiteLogo} alt="logo" className="w-20 mb-2" />
+          <span className="text-xl font-bold tracking-wide">Sci</span>
+          <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Library</span>
         </div>
 
         {/* Navigation Section: Sidebar menu items */}
@@ -73,8 +74,8 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           </button>
 
           {/* Admin Restricted Routes */}
-          {/* {isAuthenticated && user?.role === "Admin" && (
-            <> } */}
+          {isAuthenticated && user?.role === "Admin" && (
+            <>
               <button
                 onClick={() => { setSelectedComponent("Catalog"); setIsSideBarOpen(false); }}
                 className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
@@ -88,15 +89,13 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
                 <img src={usersIcon} alt="users" className="w-5" /> <span>Users</span>
               </button>
               <button
-              
                 className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-3 transition-colors"
-                onClick={() =>  dispatch (toggleAddNewAdminPopup()) }
+                onClick={() => dispatch(toggleAddNewAdminPopup())}
               >
                 <RiAdminFill className="w-6 h-5" /> <span>Add New Admin</span>
               </button>
-            
-             {/* </> */}
-              {/* )} */}
+            </>
+          )}
           
 
           {/* User Restricted Routes */}
@@ -135,7 +134,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
           className="absolute top-4 right-4 cursor-pointer block md:hidden w-fit h-fit"
         />
       </aside>
-      {AddNewAdminPopup && <AddNewAdmin/>}
+      {isAddNewAdminOpen && <AddNewAdmin />}
     </>
   );
 };
