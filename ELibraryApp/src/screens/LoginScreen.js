@@ -9,9 +9,12 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  Image,
 } from "react-native";
 
 const LoginScreen = function ({ navigation }) {
+  console.log('LoginScreen component mounted');
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -32,14 +35,14 @@ const LoginScreen = function ({ navigation }) {
     }
     // check if pass is empty
     if (!password.trim()) {
-      Alert.alert("Validation Error', 'Please enter your password.");
+      Alert.alert("Validation Error", "Please enter your password.");
       return false;
     }
     // check length of pass
-    if (password.length < 6 && password.length < 16) {
+    if (password.length < 6 || password.length > 16) {
       Alert.alert(
         "Validation Error",
-        "Password must be at least 6 characters and not greater than 16 character.",
+        "Password must be at least 6 characters and not greater than 16 characters.",
       );
       return false;
     }
@@ -68,14 +71,12 @@ const LoginScreen = function ({ navigation }) {
 
   return (
     <KeyboardAvoidingView
-      style={style.container}
+      style={styles.container}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
-      <scrollView contentContainerStyle={styles.scrollContent}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.headerSection}>
-          <Text style={styles.logo}>
-            <Image source={{}}></Image>
-          </Text>
+          <Text style={styles.logo}>📚</Text>
           <Text style={styles.title}>SCi-Library</Text>
           <Text style={styles.subtitle}>Your digital reading companion</Text>
         </View>
@@ -150,14 +151,15 @@ const LoginScreen = function ({ navigation }) {
           </View>
         </View>
 
-      </scrollView>
+      </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 const styles = StyleSheet.create({
   container: {
     flex: 1,                  
-    backgroundColor: '#f0f4ff', 
+    // make the background a bit more obvious for debugging
+    backgroundColor: '#e0ecff', 
   },
   scrollContent: {
     flexGrow: 1,              
