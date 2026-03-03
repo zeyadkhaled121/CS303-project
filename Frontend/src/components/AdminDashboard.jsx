@@ -1,63 +1,56 @@
-import React from "react";
-import adminIcon from "../assets/pointing.png";
-import usersIcon from "../assets/people-black.png";
-import bookIcon from "../assets/book-square.png";
-import { Pie } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-  ArcElement,
-} from "chart.js";
-import logo from "../assets/black-logo.png";
-import Header from "../layout/Header";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Title,
-  Tooltip,
-  Legend,
-  LineElement,
-  PointElement,
-  ArcElement
-);
+import React, { useState } from 'react';
+import { useSelector } from 'react-redux';
+import { FaPlus, FaTrash, FaEdit, FaUserShield, FaBook } from 'react-icons/fa';
+// import AddBookPopup from '../popups/AddBookPopup';
 
 const AdminDashboard = () => {
+  const [isAddPopupOpen, setIsAddPopupOpen] = useState(false);
+  
+  // Accessing auth and books state from Redux
+  const { user } = useSelector((state) => state.auth);
+  const { adminBooks } = useSelector((state) => state.books);
+
+  // Role constants for cleaner logic
+  const isSuperAdmin = user?.role === "SuperAdmin";
+
   return (
-    <div className="w-full p-6 pt-20">
-      <Header />
-      <div className="flex flex-col items-center justify-center mt-16">
-        <img src={logo} alt="logo" className="h-28 w-auto mb-8" />
-        <h1 className="text-3xl md:text-4xl font-bold text-gray-800 mb-3">
-          Welcome, Admin
-        </h1>
-        <p className="text-gray-500 text-sm md:text-base text-center max-w-md">
-          Manage Sci Library from the sidebar — oversee books, users, catalog,
-          and admin settings.
-        </p>
-        <div className="flex gap-6 mt-10">
-          <div className="flex flex-col items-center bg-white rounded-xl shadow-md p-6 w-40">
-            <img src={bookIcon} alt="books" className="w-10 h-10 mb-3" />
-            <span className="text-sm font-semibold text-gray-700">Books</span>
-          </div>
-          <div className="flex flex-col items-center bg-white rounded-xl shadow-md p-6 w-40">
-            <img src={usersIcon} alt="users" className="w-10 h-10 mb-3" />
-            <span className="text-sm font-semibold text-gray-700">Users</span>
-          </div>
-          <div className="flex flex-col items-center bg-white rounded-xl shadow-md p-6 w-40">
-            <img src={adminIcon} alt="admin" className="w-10 h-10 mb-3" />
-            <span className="text-sm font-semibold text-gray-700">Admins</span>
-          </div>
+    <div className="p-6 space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
+            {isSuperAdmin ? <FaUserShield className="text-[#358a74]" /> : <FaBook className="text-[#358a74]" />}
+            {isSuperAdmin ? "Super Admin Dashboard" : "Admin Dashboard"}
+          </h2>
+          <p className="text-sm text-gray-500">Welcome back, {user?.name}.</p>
+        </div>
+
+        {/* Both Admin and Super Admin can add books */}
+        <button 
+          onClick={() => setIsAddPopupOpen(true)}
+          className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-[#2c7360] transition-all shadow-md flex items-center gap-2 active:scale-95"
+        >
+          <FaPlus /> Add New Book
+        </button>
+      </div>
+      
+      {/* Books Table Container */}
+      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
+              <tr>
+                <th className="px-6 py-4">Title</th>
+                <th className="px-6 py-4">Author</th>
+                <th className="px-6 py-4">Category</th>
+                <th className="px-6 py-4 text-center">Actions</th>
+              </tr>
+            </thead>
+            
+          </table>
         </div>
       </div>
+    
     </div>
   );
 };
