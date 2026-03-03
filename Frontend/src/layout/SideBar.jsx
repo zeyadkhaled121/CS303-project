@@ -1,141 +1,113 @@
-import React, { useEffect } from "react";
-import whiteLogo from "../assets/white-logo.png";
-import logoutIcon from "../assets/logout.png";
-import closeIcon from "../assets/white-close-icon.png";
-import dashboardIcon from "../assets/element.png";
-import bookIcon from "../assets/book.png";
-import catalogIcon from "../assets/catalog.png";
-import settingIcon from "../assets/setting-white.png";
-import usersIcon from "../assets/people.png";
-import AddNewAdmin from "../popups/AddNewAdmin";
-import { RiAdminFill } from "react-icons/ri";
-import { useDispatch, useSelector } from "react-redux";
-import { toast } from "react-toastify";
-import { logout, resetAuthSlice } from "../store/slices/authSlice";
-import { toggleAddNewAdminPopup } from "../store/slices/popUpSlice";
+import React from "react";
+import { 
+  FaAngleDoubleLeft, 
+  FaAngleDoubleRight, 
+  FaHome, 
+  FaBook, 
+  FaFolder, 
+  FaCog, 
+  FaSignOutAlt,
+  FaUserPlus, 
+  FaUsers   
+} from "react-icons/fa";
+import { useSelector, useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
+import { logout } from "../store/slices/authSlice";
+import { toast } from 'react-toastify';
 
-const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent }) => {
+const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent, selectedComponent }) => {
   const dispatch = useDispatch();
-  const { AddNewAdminPopup: isAddNewAdminOpen } = useSelector((state) => state.popup);
-  // Extract auth state from Redux store
-  const { loading, error, message, isAuthenticated, user } = useSelector(
-    (state) => state.auth
-  );
+  const navigateTo = useNavigate();
+  
+  // Get authentication and user role from Redux
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  // Function to handle user logout
-  const handleLogout = () => {
-    dispatch(logout());
+  // 1. Common items for everyone
+  const commonItems = [
+    { name: "Home", icon: <FaHome />, component: "Dashboard" },
+    { name: "Categories", icon: <FaBook />, component: "Books" },
+  ];
+
+  // 2. Build the menu dynamically based on roles
+  let menuItems = [...commonItems];
+
+  if (isAuthenticated) {
+    // Check if the user is ANY type of Admin (Admin or SuperAdmin)
+    if (user?.role === "Admin" || user?.role === "SuperAdmin") {
+      // Both Admin and SuperAdmin can see the Users List
+      menuItems.push({ name: "Users List", icon: <FaUsers />, component: "AllUsers" });
+
+      // ONLY SuperAdmin can see the "Add Admin" option
+      if (user?.role === "SuperAdmin") {
+        menuItems.push({ name: "Add Admin", icon: <FaUserPlus />, component: "CreateAdmin" });
+      }
+    } else {
+      // Regular User items
+      menuItems.push({ name: "My Library", icon: <FaFolder />, component: "My Borrowed Books" });
+    }
+
+    // Settings is for everyone logged in
+    menuItems.push({ name: "Settings", icon: <FaCog />, component: "Settings" });
+  }
+
+  const handleItemClick = (item) => {
+    setSelectedComponent(item.component);
+    if(item.name === "Settings") navigateTo("/settings");
+    else navigateTo("/");
   };
 
-  // Effect to handle success/error notifications and state reset
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      dispatch(resetAuthSlice());
-    }
-    if (message) {
-      toast.success(message);
-      dispatch(resetAuthSlice());
-    }
-  }, [dispatch, error, message]);
+  const handleLogout = () => {
+    dispatch(logout());
+    navigateTo("/login");
+  };
 
   return (
-    <>
-      {/* Sidebar Container: Responsive drawer with transition effects */}
-      <aside
-        className={`${
-          isSideBarOpen ? "left-0" : "-left-full"
-        } z-10 transition-all duration-700 md:fixed md:left-0 flex w-64 bg-black text-white flex-col h-full`}
-        style={{ position: "fixed" }}
+    <aside
+      className={`group fixed left-0 top-16 h-[calc(100vh-64px)] bg-[#358a74] text-white flex flex-col z-40 
+                  transition-all duration-500 ease-in-out shadow-xl
+                  ${isSideBarOpen ? "w-64" : "w-20"}`}
+    >
+      {/* Toggle Button */}
+      <button
+        onClick={() => setIsSideBarOpen(!isSideBarOpen)}
+        className="absolute -right-5 top-1/2 -translate-y-1/2 bg-[#358a74] text-white
+                   py-6 px-1 rounded-md shadow-lg z-50 opacity-0 group-hover:opacity-100 transition-opacity"
       >
-        {/* Sidebar Header: Logo Section */}
-        <div className="px-6 py-4 my-8 flex flex-col items-center">
-          <img src={whiteLogo} alt="logo" className="w-20 mb-2" />
-          <span className="text-xl font-bold tracking-wide">Sci</span>
-          <span className="text-[10px] tracking-[0.3em] uppercase text-gray-400">Library</span>
-        </div>
-
-        {/* Navigation Section: Sidebar menu items */}
-        <nav className="flex-1 px-6 space-y-2 overflow-y-auto">
-          {/* Dashboard Link: Shared by all roles */}
+        {isSideBarOpen ? <FaAngleDoubleLeft /> : <FaAngleDoubleRight />}
+      </button>
+      
+      {/* Nav List */}
+      <nav className="flex-1 px-3 space-y-3 overflow-y-auto pt-9">
+        {menuItems.map((item, index) => (
           <button
-            onClick={() => { setSelectedComponent("Dashboard"); setIsSideBarOpen(false); }}
-            className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors bg-transparent hover:cursor-pointer"
+            key={index}
+            onClick={() => handleItemClick(item)}
+            className={`w-full py-3 px-4 font-bold text-base rounded-md flex items-center transition-all
+                        ${selectedComponent === item.component ? "bg-[#2c7360]" : "hover:bg-[#2c7360]"}
+                        ${isSideBarOpen ? "justify-start space-x-4" : "justify-center"}`}
           >
-            <img src={dashboardIcon} alt="dashboard" className="w-5" /> <span>Dashboard</span>
+            <span className="text-xl">{item.icon}</span>
+            <span className={`text-base whitespace-nowrap ${!isSideBarOpen && "hidden"}`}>
+              {item.name}
+            </span>
           </button>
-
-          {/* Books Management Link */}
+        ))}
+      </nav>
+      
+      {/* Logout */}
+      {isAuthenticated && (
+        <div className="p-3 border-t border-white/20">
           <button
-            onClick={() => { setSelectedComponent("Books"); setIsSideBarOpen(false); }}
-            className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
-          >
-            <img src={bookIcon} alt="books" className="w-5" /> <span>Books</span>
-          </button>
-
-          {/* Admin Restricted Routes */}
-          {isAuthenticated && user?.role === "Admin" && (
-            <>
-              <button
-                onClick={() => { setSelectedComponent("Catalog"); setIsSideBarOpen(false); }}
-                className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
-              >
-                <img src={catalogIcon} alt="catalog" className="w-5" /> <span>Catalog</span>
-              </button>
-              <button
-                onClick={() => { setSelectedComponent("Users"); setIsSideBarOpen(false); }}
-                className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
-              >
-                <img src={usersIcon} alt="users" className="w-5" /> <span>Users</span>
-              </button>
-              <button
-                className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-3 transition-colors"
-                onClick={() => dispatch(toggleAddNewAdminPopup())}
-              >
-                <RiAdminFill className="w-6 h-5" /> <span>Add New Admin</span>
-              </button>
-            </>
-          )}
-          
-
-          {/* User Restricted Routes */}
-          {isAuthenticated && user?.role === "User" && (
-            <button
-              onClick={() => { setSelectedComponent("My Borrowed Books"); setIsSideBarOpen(false); }}
-              className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-3 transition-colors"
-            >
-              <img src={catalogIcon} alt="borrowed" className="w-5" /> <span>My Borrowed Books</span>
-            </button>
-          )}
-
-          {/* Settings Section */}
-          <button
-            className="w-full py-2 font-medium hover:bg-zinc-800 rounded-md flex items-center space-x-2 transition-colors"
-          >
-            <img src={settingIcon} alt="icon" className="w-5" /> <span>Update Credentials</span>
-          </button>
-        </nav>
-
-        {/* Sidebar Footer: Logout Button */}
-        <div className="px-6 py-6 border-t border-zinc-800">
-          <button
-            className="w-full py-2 font-medium text-red-400 hover:bg-zinc-800 rounded-md flex items-center justify-center space-x-3 transition-colors"
             onClick={handleLogout}
+            className={`w-full py-3 px-4 rounded-md flex items-center hover:bg-[#2c7360] transition-all
+                        ${isSideBarOpen ? "justify-start space-x-4" : "justify-center"}`}
           >
-            <img src={logoutIcon} alt="logout" className="w-5" /> <span>Log Out</span>
+            <span className="text-xl"><FaSignOutAlt /></span>
+            <span className={`text-base font-bold ${!isSideBarOpen && "hidden"}`}>Logout</span>
           </button>
         </div>
-
-        {/* Mobile View: Close Sidebar Button */}
-        <img
-          src={closeIcon}
-          alt="close"
-          onClick={() => setIsSideBarOpen(false)}
-          className="absolute top-4 right-4 cursor-pointer block md:hidden w-fit h-fit"
-        />
-      </aside>
-      {isAddNewAdminOpen && <AddNewAdmin />}
-    </>
+      )}
+    </aside>
   );
 };
 
