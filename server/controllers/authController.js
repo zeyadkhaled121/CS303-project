@@ -15,7 +15,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter all Fields.", 400));
     }
 
-    // enforce reasonable password length; we could also add strength rules here
+    // enforce reasonable password length;
     if (password.length < 8 || password.length > 16) {
         return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
     }
@@ -33,14 +33,14 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         }
     }
 
-    // look for an already verified account with the same email - prevents duplicates
+    // look for an already verified account with the same email - 
     const verifiedUserQuery = await db.collection("users")
         .where("email", "==", email)
         .where("accountVerified", "==", true)
         .get();
 
     if (!verifiedUserQuery.empty) {
-        // user exists and email has been verified; prompt for login instead of re-registering
+        // user exists and email has been verified
         return next(new ErrorHandler("User already exists and is verified. Please Login.", 400));
     }
 
@@ -50,12 +50,11 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         .where("accountVerified", "==", false)
         .get();
 
-    // block brute-force registration attempts
     if (unverifiedUserQuery.size >= 5) {
         return next(new ErrorHandler("You have exceeded the number of registration attempts. Contact support.", 400));
     }
 
-    // hash the password before storing; never store plaintext
+    // hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = generateVerificationCode();
     // expire code in 15 minutes to reduce window for OTP reuse
@@ -72,11 +71,9 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     };
 
     if (!unverifiedUserQuery.empty) {
-        // update the existing unverified document instead of creating a new one
         const docId = unverifiedUserQuery.docs[0].id;
         await db.collection("users").doc(docId).update(userData);
     } else {
-        // create a new user record; include default arrays/roles
         await db.collection("users").add({
             ...userData,
             role: assignedRole, 
@@ -86,10 +83,8 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     }
 
     try {
-        // send email and short‑circuit response inside utility
         await sendVerificationCode(verificationCode, email, res);
     } catch (error) {
-        // if email fails, we don't rollback the user record but notify the caller
         return next(new ErrorHandler("Registration saved, but failed to send verification email.", 500));
     }
 });
@@ -114,9 +109,7 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const userData = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-    // compare strings because OTP may be numeric and stored as number or string
     if (String(userData.verificationCode) !== String(otp) || userData.verificationCodeExpire.toDate() < new Date()) {
-        // guard against both wrong codes and codes past their expiration
         return next(new ErrorHandler("Invalid or expired OTP", 400));
     }
 
@@ -128,7 +121,9 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        message: "Email verified successfully!"
+        message: "Email verified successfully!",
+        data: null,
+        error: null,
     });
 });
 
@@ -140,11 +135,9 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter Email and Password", 400));
     }
 
-    // retrieval is case-sensitive; make sure clients normalize if needed
     const userSnapshot = await db.collection("users").where("email", "==", email).get();
 
     if (userSnapshot.empty) {
-        // don't reveal whether email or password was incorrect
         return next(new ErrorHandler("Invalid Email or Password", 401));
     }
 
@@ -152,22 +145,22 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
     const userId = userSnapshot.docs[0].id;
 
     if (!user.accountVerified) {
-        // block login until the user confirms their address
         return next(new ErrorHandler("Please verify your email first.", 401));
     }
 
-    // bcrypt.compare handles hashing the supplied password with salt stored
     const isPasswordMatched = await bcrypt.compare(password, user.password);
 
     if (!isPasswordMatched) {
         return next(new ErrorHandler("Invalid Email or Password", 401));
     }
 
-    // successful authentication; attach JWT cookie and return user data
     sendToken({ id: userId, ...user }, 200, res, "Logged in successfully.");
-});
+console.log("Current Server Time:", new Date().toLocaleString());}
+);
 
 // 4. Logout User
+// On mobile the client discards its stored token.
+// This endpoint clears the cookie (for web) and confirms logout.
 export const logoutUser = catchAsyncErrors(async (req, res, next) => {
     res.cookie("token", null, {
         expires: new Date(Date.now()),
@@ -177,16 +170,20 @@ export const logoutUser = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Logged out successfully.",
+        data: null,
+        error: null,
     });
 });
 
 // 5. Get User Profile (Current User)
 export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
-    const user = req.user; 
+    const { password, verificationCode, verificationCodeExpire, resetPasswordToken, resetPasswordExpire, ...safeUser } = req.user;
 
     res.status(200).json({
         success: true,
-        user,
+        message: "User profile fetched successfully.",
+        data: { user: safeUser },
+        error: null,
     });
 });
 
@@ -252,7 +249,9 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        message: "Password Reset Successfully. Please Login.",
+        message: "Password reset successfully. Please login.",
+        data: null,
+        error: null,
     });
 });
 
@@ -275,7 +274,6 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
     const isPasswordMatched = await bcrypt.compare(oldPassword, user.password);
 
     if (!isPasswordMatched) {
-        // do not indicate which field failed for security reasons
         return next(new ErrorHandler("Old Password is incorrect", 400));
     }
 
