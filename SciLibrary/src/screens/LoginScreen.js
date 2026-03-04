@@ -158,8 +158,7 @@ const LoginScreen = function ({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,                  
-    // make the background a bit more obvious for debugging
-    backgroundColor: '#e0ecff', 
+    backgroundColor: '#18973a', 
   },
   scrollContent: {
     flexGrow: 1,              
