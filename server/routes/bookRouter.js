@@ -4,8 +4,8 @@ import { isAuthenticatedUser, authorizeRoles } from "../middlewares/auth.js";
 
 const router = express.Router();
 
-// Any authenticated user can view books
-router.get("/getall", isAuthenticatedUser, getAllBooks);
+// Public: anyone (including guests) can view books
+router.get("/getall", getAllBooks);
 
 //  Admin and Super Admin can manage books
 router.post("/add", isAuthenticatedUser, authorizeRoles("Admin", "Super Admin"), createBook);
