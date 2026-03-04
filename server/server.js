@@ -1,9 +1,11 @@
 import { app } from "./app.js";
 import { connectDB } from "./database/db.js";
+import { startCleanupScheduler } from "./utils/cleanupUnverifiedAccounts.js";
 import cloudinary from "cloudinary";
 import os from "os";
 
 connectDB();
+startCleanupScheduler();
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
