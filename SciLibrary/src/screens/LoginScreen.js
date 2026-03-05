@@ -13,13 +13,13 @@ import {
 } from "react-native";
 
 const LoginScreen = function ({ navigation }) {
-  console.log('LoginScreen component mounted');
+  console.log("LoginScreen component mounted");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [rememberMe,setRememberME] = useState(false);
+  const [rememberMe, setRememberME] = useState(false);
 
   const validateInputs = () => {
     // check if email is empty
@@ -46,7 +46,7 @@ const LoginScreen = function ({ navigation }) {
       );
       return false;
     }
-    
+
     // all thing pervouis is okey
     return true;
   };
@@ -75,16 +75,20 @@ const LoginScreen = function ({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.headerSection}>
-          <Text style={styles.logo}>📚</Text>
+        {/* <View style={styles.headerSection}>
+          <Text style={styles.logo}>
+            <Image
+              source={require("/mnt/storage/projects of learning/CS303-project/SciLibrary/assets/image.png")}
+            />
+          </Text>
           <Text style={styles.title}>SCi-Library</Text>
-          <Text style={styles.subtitle}>Your digital reading companion</Text>
-        </View>
+          <Text style={styles.subtitle}>Your digital reading companion</Text> */}
+        {/* </View> */}
 
         <View style={styles.formSection}>
           <Text style={styles.formTitle}>Welcome Back!</Text>
           <Text style={styles.formSubtitle}>Sign in to continue reading</Text>
-        
+
           {/* EMAIL INPUT */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Email Address</Text>
@@ -95,12 +99,12 @@ const LoginScreen = function ({ navigation }) {
               value={email}
               // 'text' is the new full value of the input
               onChangeText={(text) => setEmail(text)}
-              keyboardType="email-address"  
-              autoCapitalize="none"         
-              autoCorrect={false}           
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
           </View>
-           {/* PASSWORD INPUT */}
+          {/* PASSWORD INPUT */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
@@ -119,76 +123,79 @@ const LoginScreen = function ({ navigation }) {
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
               >
-                <Text style={styles.eyeText}>{showPassword ? '🙈' : '👁️'}</Text>
+                <Text style={styles.eyeText}>{showPassword ? "🙈" : "👁️"}</Text>
               </TouchableOpacity>
             </View>
           </View>
-           <TouchableOpacity
+          <TouchableOpacity
             style={styles.forgotContainer}
-            onPress={() => navigation.navigate('ForgetPassword')}
+            onPress={() => navigation.navigate("ForgetPassword")}
           >
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
 
           {/* LOGIN BUTTON */}
-          
+
           <TouchableOpacity
-            style={[styles.loginButton, isLoading && styles.loginButtonDisabled]}
+            style={[
+              styles.loginButton,
+              isLoading && styles.loginButtonDisabled,
+            ]}
             onPress={handleLogin}
             disabled={isLoading}
           >
             <Text style={styles.loginButtonText}>
-              {isLoading ? 'Signing In...' : 'Sign In'}
+              {isLoading ? "Logging In..." : "Login"}
             </Text>
           </TouchableOpacity>
 
           {/* REGISTER LINK */}
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>Don't have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Register')}>
+            <TouchableOpacity onPress={() => navigation.navigate("Register")}>
               <Text style={styles.registerLink}>Register</Text>
             </TouchableOpacity>
           </View>
         </View>
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
 };
 const styles = StyleSheet.create({
   container: {
-    flex: 1,                  
-    backgroundColor: '#18973a', 
+    flex: 1,
+    backgroundColor: "gray",
   },
   scrollContent: {
-    flexGrow: 1,              
-    justifyContent: 'center', 
+    flexGrow: 1,
+    justifyContent: "center",
     padding: 24,
   },
   headerSection: {
-    alignItems: 'center',     
+    alignItems: "center",
     marginBottom: 40,
   },
-  logo: {
-    fontSize: 60,
-    marginBottom: 8,
-  },
-  title: {
-    fontSize: 32,
-    fontWeight: 'bold',
-    color: '#086f27',         
-    letterSpacing: 1,
-  },
+  // logo: {
+  //   fontSize: 60,
+  //   marginBottom: 8,
+  //   resizeMode:"center",
+  // },
+  // title: {
+  //   fontSize: 32,
+  //   fontWeight: "bold",
+  //   color: "#086f27",
+  //   letterSpacing: 1,
+  // },
   subtitle: {
     fontSize: 14,
-    color: '#666',
+    color: "#666",
     marginTop: 4,
   },
   formSection: {
-    backgroundColor: '#ffffff',
+    backgroundColor: "#ffffff",
     borderRadius: 20,
     padding: 28,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 12,
@@ -196,13 +203,13 @@ const styles = StyleSheet.create({
   },
   formTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: '#1a237e',
+    fontWeight: "bold",
+    color: "#2c7360",
     marginBottom: 4,
   },
   formSubtitle: {
     fontSize: 14,
-    color: '#888',
+    color: "#888",
     marginBottom: 24,
   },
   inputContainer: {
@@ -210,26 +217,26 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#444',
+    fontWeight: "600",
+    color: "#444",
     marginBottom: 6,
   },
   input: {
-    backgroundColor: '#f5f7ff',
+    backgroundColor: "#f5f7ff",
     borderWidth: 1.5,
-    borderColor: '#dde1f0',
+    borderColor: "#dde1f0",
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 13,
     fontSize: 15,
-    color: '#222',
+    color: "#222",
   },
   passwordRow: {
-    flexDirection: 'row',     
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   passwordInput: {
-    flex: 1,                  
+    flex: 1,
     marginRight: 8,
   },
   eyeButton: {
@@ -239,43 +246,43 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   forgotContainer: {
-    alignSelf: 'flex-end',    // Push to right side
+    alignSelf: "flex-end", // Push to right side
     marginBottom: 20,
   },
   forgotText: {
-    color: '#3f51b5',
+    color: "#2c7360",
     fontSize: 13,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   loginButton: {
-    backgroundColor: '#1a237e',
+    backgroundColor: "#2c7360",
     borderRadius: 14,
     paddingVertical: 16,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 20,
   },
   loginButtonDisabled: {
-    backgroundColor: '#9fa8da', 
+    backgroundColor: "#9fa8da",
   },
   loginButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     letterSpacing: 0.5,
   },
   registerRow: {
-    flexDirection: 'row',
-    justifyContent: 'center', 
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
   },
   registerText: {
-    color: '#666',
+    color: "#666",
     fontSize: 14,
   },
   registerLink: {
-    color: '#1a237e',
+    color: "#2c7360",
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
 });
 
