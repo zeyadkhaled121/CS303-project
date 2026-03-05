@@ -62,7 +62,7 @@ const LoginScreen = function ({ navigation }) {
     setIsLoading(true); // Show loading to user
 
     try {
-      const response = await API.post('/auth/login', { email, password });
+      const response = await API.post('/api/v1/user/login', { email, password });
       const { user, token } = response.data.data;
       dispatch(login({ user, token }));
       navigation.navigate("Home", { userName: user.name });

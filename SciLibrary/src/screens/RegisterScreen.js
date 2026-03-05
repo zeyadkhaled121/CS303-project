@@ -24,8 +24,8 @@ const RegisterScreen = function ({ navigation }) {
   // password strength for user when create  ===> mostafa
   const getPasswordStrength = (pass) => {
     if (pass.length === 0) return null;
-    if (pass.length() < 6) return "Week password";
-    if (pass.length() < 10) return "Medium password";
+    if (pass.length < 6) return "Week password";
+    if (pass.length < 10) return "Medium password";
 
     const hasUpperChar = /[A-Z]/.test(pass);
     const hasLowerChar = /[a-z]/.test(pass);
@@ -88,16 +88,27 @@ const RegisterScreen = function ({ navigation }) {
     setIsLoading(true);
 
     try {
-      const response = await API.post('/auth/register', { name, email, password });
-      Alert.alert("Registration Successful", "Please check your email for verification code");
+      const response = await API.post('/api/v1/user/register', { name, email, password });
+      console.log('register response', response?.data);
+      // show success alert; include code if returned (dev only)
+      let msg = "Please check your email for verification code";
+      if (response?.data?.data?.code) {
+        msg += `\n(code: ${response.data.data.code})`;
+      }
+      Alert.alert("Registration Successful", msg);
       navigation.navigate("OTP", {
         email: email,
         name: name,
         isRegistration: true,
+        code: response?.data?.data?.code, // may be undefined
       });
     } catch (error) {
       console.error('Registration error:', error);
-      Alert.alert("Registration Failed", error.response?.data?.message || "An error occurred during registration");
+      Alert.alert(
+        "Registration Failed",
+        error.response?.data?.message ||
+          "An error occurred during registration (check network or server)",
+      );
     } finally {
       setIsLoading(false);
     }
