@@ -1,12 +1,25 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import API from '../api/axios';
 
-export default function OTPScreen({ navigation }) {
+export default function OTPScreen({ navigation, route }) {
   const [otp, setOtp] = useState('');
+  const { email } = route.params || {};
 
-  const handleVerifyOTP = () => {
-    // Handle OTP verification logic
-    console.log('Verify OTP:', otp);
+  const handleVerifyOTP = async () => {
+    if (!otp.trim()) {
+      Alert.alert('Error', 'Please enter the OTP');
+      return;
+    }
+
+    try {
+      const response = await API.post('/auth/verify-email', { email, otp });
+      Alert.alert('Success', 'Email verified successfully!');
+      navigation.navigate('Login');
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      Alert.alert('Verification Failed', error.response?.data?.message || 'Invalid OTP');
+    }
   };
 
   return (
