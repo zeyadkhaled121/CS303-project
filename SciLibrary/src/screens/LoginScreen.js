@@ -11,6 +11,9 @@ import {
   Platform,
   Image,
 } from "react-native";
+import { useDispatch } from "react-redux";
+import { login } from "../store/slices/authSlice";
+import API from "../api/axios";
 
 const LoginScreen = function ({ navigation }) {
   console.log("LoginScreen component mounted");
@@ -20,6 +23,8 @@ const LoginScreen = function ({ navigation }) {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [rememberMe, setRememberME] = useState(false);
+
+  const dispatch = useDispatch();
 
   const validateInputs = () => {
     // check if email is empty
@@ -52,19 +57,21 @@ const LoginScreen = function ({ navigation }) {
   };
   // handle of login
   // called after user entered data and clicked login button
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validateInputs()) return; // when validateinput not return true stop
     setIsLoading(true); // Show loading to user
 
-    // In a real app, you would call your API here:
-    // const response = await fetch('https://yourapi.com/login', {...})
-    //
-    // For now, we simulate a 1.5 second API call using setTimeout
-    setTimeout(() => {
+    try {
+      const response = await API.post('/auth/login', { email, password });
+      const { user, token } = response.data.data;
+      dispatch(login({ user, token }));
+      navigation.navigate("Home", { userName: user.name });
+    } catch (error) {
+      console.error('Login error:', error);
+      Alert.alert("Login Failed", error.response?.data?.message || "An error occurred during login");
+    } finally {
       setIsLoading(false);
-
-      navigation.navigate("Home", { userName: email.split("@")[0] });
-    }, 1500);
+    }
   };
 
   //  THE UI
@@ -204,7 +211,7 @@ const styles = StyleSheet.create({
   formTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#2c7360",
+    color: "rgb(44, 115, 96)",
     marginBottom: 4,
   },
   formSubtitle: {

@@ -1,5 +1,5 @@
 import axios from "axios";
 const API =axios.create({
-    bashURL: "http://localhost:8081",
+    baseURL: "http://localhost:5000",
 });
 export default API ; 
