@@ -5,7 +5,7 @@ import axios from "axios";
 // In production set it to your backend origin (e.g. https://api.yourdomain.com).
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_BASE_URL || "",
-  withCredentials: true,
+withCredentials: true,
   headers: {
     "Content-Type": "application/json",
   },
