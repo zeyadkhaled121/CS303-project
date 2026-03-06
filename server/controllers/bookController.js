@@ -3,7 +3,20 @@ import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { db } from "../database/db.js";
 import cloudinary from "cloudinary";
 
-// 1. Create a New Book (Admin Only)
+// Get All Books 
+export const getAllBooks = catchAsyncErrors(async (req, res, next) => {
+    const snapshot = await db.collection("books").orderBy("createdAt", "desc").get();
+    const books = [];
+    snapshot.forEach((doc) => books.push({ id: doc.id, ...doc.data() }));
+    res.status(200).json({
+        success: true,
+        message: "Books fetched successfully.",
+        data: { books },
+        error: null,
+    });
+});
+
+// 1. Create a New Book (Admin and super admin)
 export const createBook = catchAsyncErrors(async (req, res, next) => {
     if (!req.files || Object.keys(req.files).length === 0) {
         return next(new ErrorHandler("Book image is required.", 400));
@@ -43,11 +56,12 @@ export const createBook = catchAsyncErrors(async (req, res, next) => {
     res.status(201).json({
         success: true,
         message: "Book added successfully.",
-        bookId: docRef.id,
+        data: { bookId: docRef.id },
+        error: null,
     });
 });
 
-// 2. Update a Book (Admin Only)
+// 2. Update a Book (Admin and super admin)
 export const updateBook = catchAsyncErrors(async (req, res, next) => {
     const bookId = req.params.id;
     const { title, genre, author, edition } = req.body;
@@ -95,10 +109,12 @@ export const updateBook = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Book updated successfully.",
+        data: null,
+        error: null,
     });
 });
 
-// 3. Delete a Book (Admin Only)
+// 3. Delete a Book (Admin and super admin)
 export const deleteBook = catchAsyncErrors(async (req, res, next) => {
     const bookId = req.params.id;
 
@@ -120,6 +136,7 @@ export const deleteBook = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Book and its image deleted successfully.",
+        data: null,
+        error: null,
     });
-
 });

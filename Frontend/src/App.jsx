@@ -67,9 +67,13 @@ const App = () => {
         
         {/* Global Toast Notifications */}
         <ToastContainer 
-          theme="colored" 
-          position="top-right" 
-          rtl={false} 
+         position="top-center" 
+  autoClose={3000} 
+  hideProgressBar={false}
+  newestOnTop={true}
+  closeOnClick
+  pauseOnHover
+  theme="light"
         />
       </div>
     </Router>

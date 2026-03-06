@@ -1,32 +1,90 @@
-import React from 'react';
-import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image } from 'react-native';
-import { books } from '../store/books';
+import React, { useMemo, useState } from 'react';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
+import SearchBar from '../components/SearchBar';
+import CategoryList from '../components/CategoryList';
+import BookCard from '../components/BookCard';
+import { books as allBooks } from '../store/books';
+import Toast from 'react-native-toast-message';
 
-export default function HomeScreen({ navigation }) {
-  const renderBookItem = ({ item }) => (
-    <View style={styles.bookCard}>
-      <Image
-        source={{ uri: item.cover }}
-        style={styles.bookCover}
-      />
-      <Text style={styles.bookTitle}>{item.title}</Text>
-      <Text style={styles.bookAuthor}>{item.author}</Text>
-      <TouchableOpacity style={styles.borrowButton}>
-        <Text style={styles.borrowButtonText}>Borrow</Text>
-      </TouchableOpacity>
-    </View>
-  );
+ function HomeScreen({ navigation }) {
+  const [query, setQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState(null);
+
+  const categories = useMemo(() => ['All', 'Fiction', 'Non-Fiction', 'Science', 'History'], []);
+
+  const filteredBooks = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return allBooks.filter((b) => {
+      const matchesQuery = q ? (b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)) : true;
+      const matchesCategory = selectedCategory && selectedCategory !== 'All' ? (b?.category === selectedCategory) : true;
+      return matchesQuery && matchesCategory;
+    });
+  }, [query, selectedCategory]);
+
+  const popularBooks = useMemo(() => filteredBooks.slice(0, 4), [filteredBooks]);
+  const recentlyAdded = useMemo(() => filteredBooks.slice().reverse().slice(0, 6), [filteredBooks]);
+
+  const handleBorrow = (book) => {
+    Toast.show({ type: 'info', text1: 'Borrow', text2: `Requested to borrow: ${book.title}` });
+  };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Welcome to E-Library</Text>
-      
-      <FlatList
-        data={books}
-        renderItem={renderBookItem}
-        keyExtractor={(item) => item.id.toString()}
-        numColumns={2}
-      />
+      <View style={styles.headerRow}>
+        <Text style={styles.welcome}>Welcome back!</Text>
+        <Text style={styles.subtitle}>Find your next read</Text>
+      </View>
+
+      <SearchBar value={query} onChangeText={setQuery} />
+
+      <CategoryList categories={categories} onSelectCategory={(c) => setSelectedCategory(c)} />
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Popular Books</Text>
+          <TouchableOpacity onPress={() => Toast.show({ text1: 'View All', text2: 'Open popular books list' })}>
+            <Text style={styles.viewAll}>View All</Text>
+          </TouchableOpacity>
+        </View>
+
+        <FlatList
+          data={popularBooks}
+          horizontal
+          keyExtractor={(item) => item.id.toString()}
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <BookCard
+              cover={item.cover}
+              title={item.title}
+              author={item.author}
+              onPress={() => navigation.navigate('Home')}
+              onBorrow={() => handleBorrow(item)}
+            />
+          )}
+        />
+      </View>
+
+      <View style={styles.section}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Recently Added</Text>
+        </View>
+
+        <FlatList
+          data={recentlyAdded}
+          keyExtractor={(item) => item.id.toString()}
+          renderItem={({ item }) => (
+            <BookCard
+              cover={item.cover}
+              title={item.title}
+              author={item.author}
+              onPress={() => navigation.navigate('Home')}
+              onBorrow={() => handleBorrow(item)}
+            />
+          )}
+        />
+      </View>
+
+      <Toast />
     </View>
   );
 }
@@ -34,55 +92,40 @@ export default function HomeScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 10,
-    backgroundColor: '#f5f5f5',
+    padding: 14,
+    backgroundColor: '#f9f9f9',
   },
-  header: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    marginTop: 10,
+  headerRow: {
+    marginTop: 6,
+    marginBottom: 6,
   },
-  bookCard: {
-    flex: 1,
-    margin: 5,
-    backgroundColor: 'white',
-    borderRadius: 8,
-    padding: 10,
+  welcome: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#0f172a',
+  },
+  subtitle: {
+    fontSize: 14,
+    color: '#475569',
+    marginTop: 4,
+  },
+  section: {
+    marginTop: 12,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.41,
-    elevation: 2,
+    marginBottom: 8,
   },
-  bookCover: {
-    width: 120,
-    height: 140,
-    borderRadius: 5,
-    marginBottom: 10,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#0f172a',
   },
-  bookTitle: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 5,
-  },
-  bookAuthor: {
-    fontSize: 10,
-    color: '#666',
-    textAlign: 'center',
-    marginBottom: 10,
-  },
-  borrowButton: {
-    backgroundColor: '#007AFF',
-    paddingHorizontal: 15,
-    paddingVertical: 8,
-    borderRadius: 5,
-  },
-  borrowButtonText: {
-    color: 'white',
-    fontSize: 12,
-    fontWeight: 'bold',
+  viewAll: {
+    color: '#358a74',
+    fontWeight: '600',
   },
 });
+export default HomeScreen ; 
