@@ -4,61 +4,66 @@ import { db } from "../database/db.js";
 import { generateVerificationCode } from "../models/userModel.js";
 import bcrypt from "bcrypt";
 import { sendVerificationCode } from "../utils/sendVerificationCode.js";
-import { sendToken } from "../utils/sendToken.js"; 
+import { sendToken } from "../utils/sendToken.js";
 
-// 1. Register User (Or Admin)
+
+
+// ═══════════════════════════════════════════════
+// 1. Register User (or Admin / Super Admin)
+// ═══════════════════════════════════════════════
 export const register = catchAsyncErrors(async (req, res, next) => {
     const { name, email, password, adminSecret } = req.body;
 
-    // basic required field validation - avoids unnecessary DB reads
     if (!name || !email || !password) {
         return next(new ErrorHandler("Please enter all Fields.", 400));
     }
 
-    // enforce reasonable password length;
     if (password.length < 8 || password.length > 16) {
         return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
     }
 
-    // determine role; default to User unless admin secret is provided
-    let assignedRole = "User"; 
-    
-    if (adminSecret) {
-        // check against environment variable so the secret isn't exposed in code
+    // ── Role assignment logic ──
+    let assignedRole = "User";
+
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+    // Super Admin takes priority over everything
+    if (SUPER_ADMIN_EMAIL && email === SUPER_ADMIN_EMAIL) {
+        assignedRole = "Super Admin";
+    } else if (adminSecret) {
         if (adminSecret === process.env.ADMIN_SECRET_KEY) {
-            assignedRole = "Admin"; 
+            assignedRole = "Admin";
         } else {
-            // early exit on invalid admin key to prevent account creation
-            return next(new ErrorHandler("Invalid Admin Secret Key.", 400)); 
+            return next(new ErrorHandler("Invalid Admin Secret Key.", 400));
         }
     }
 
-    // look for an already verified account with the same email - 
-    const verifiedUserQuery = await db.collection("users")
+    // look for an already-verified account
+    const verifiedUserQuery = await db
+        .collection("users")
         .where("email", "==", email)
         .where("accountVerified", "==", true)
         .get();
 
     if (!verifiedUserQuery.empty) {
-        // user exists and email has been verified
         return next(new ErrorHandler("User already exists and is verified. Please Login.", 400));
     }
 
-    // check for previously created but unverified accounts to limit abuse
-    const unverifiedUserQuery = await db.collection("users")
+    // limit unverified registration attempts
+    const unverifiedUserQuery = await db
+        .collection("users")
         .where("email", "==", email)
         .where("accountVerified", "==", false)
         .get();
 
     if (unverifiedUserQuery.size >= 5) {
-        return next(new ErrorHandler("You have exceeded the number of registration attempts. Contact support.", 400));
+        return next(
+            new ErrorHandler("You have exceeded the number of registration attempts. Contact support.", 400)
+        );
     }
 
-    // hash the password before storing
     const hashedPassword = await bcrypt.hash(password, 10);
     const verificationCode = generateVerificationCode();
-    // expire code in 15 minutes to reduce window for OTP reuse
-    const verificationCodeExpire = new Date(Date.now() + 15 * 60 * 1000); 
+    const verificationCodeExpire = new Date(Date.now() + 15 * 60 * 1000);
 
     const userData = {
         name,
@@ -76,7 +81,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     } else {
         await db.collection("users").add({
             ...userData,
-            role: assignedRole, 
+            role: assignedRole,
             borrowedBooks: [],
             createdAt: new Date(),
         });
@@ -85,11 +90,23 @@ export const register = catchAsyncErrors(async (req, res, next) => {
     try {
         await sendVerificationCode(verificationCode, email, res);
     } catch (error) {
-        return next(new ErrorHandler("Registration saved, but failed to send verification email.", 500));
+        // Log error but still return success to client so UI can navigate to OTP screen.
+        console.error("Failed to send verification email:", error);
+        // in development we also print the code so tester can copy it
+        console.log("[DEV] verification code for", email, "is", verificationCode);
+        // send a 200 response with a warning message
+        return res.status(200).json({
+            success: true,
+            message: "Registration saved but verification email could not be sent. Use the code below for testing.",
+            data: { email, code: verificationCode },
+            error: null,
+        });
     }
 });
 
+// ═══════════════════════════════════════════════
 // 2. Verify Email
+// ═══════════════════════════════════════════════
 export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const { email, otp } = req.body;
 
@@ -97,7 +114,8 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter OTP and Email", 400));
     }
 
-    const userSnapshot = await db.collection("users")
+    const userSnapshot = await db
+        .collection("users")
         .where("email", "==", email)
         .where("accountVerified", "==", false)
         .get();
@@ -109,14 +127,18 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const userData = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-    if (String(userData.verificationCode) !== String(otp) || userData.verificationCodeExpire.toDate() < new Date()) {
+    // Firestore Timestamp conversion
+    if (
+        String(userData.verificationCode) !== String(otp) ||
+        userData.verificationCodeExpire.toDate() < new Date()
+    ) {
         return next(new ErrorHandler("Invalid or expired OTP", 400));
     }
 
     await db.collection("users").doc(docId).update({
         accountVerified: true,
         verificationCode: null,
-        verificationCodeExpire: null
+        verificationCodeExpire: null,
     });
 
     res.status(200).json({
@@ -127,7 +149,9 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
+// ═══════════════════════════════════════════════
 // 3. Login User
+// ═══════════════════════════════════════════════
 export const loginUser = catchAsyncErrors(async (req, res, next) => {
     const { email, password } = req.body;
 
@@ -149,18 +173,21 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
     }
 
     const isPasswordMatched = await bcrypt.compare(password, user.password);
-
     if (!isPasswordMatched) {
         return next(new ErrorHandler("Invalid Email or Password", 401));
     }
 
+    // ── Hardcoded Super Admin enforcement at login ──
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+    if (SUPER_ADMIN_EMAIL && email === SUPER_ADMIN_EMAIL && user.role !== "Super Admin") {
+        await db.collection("users").doc(userId).update({ role: "Super Admin" });
+        user.role = "Super Admin";
+    }
+
     sendToken({ id: userId, ...user }, 200, res, "Logged in successfully.");
-console.log("Current Server Time:", new Date().toLocaleString());}
-);
+});
 
 // 4. Logout User
-// On mobile the client discards its stored token.
-// This endpoint clears the cookie (for web) and confirms logout.
 export const logoutUser = catchAsyncErrors(async (req, res, next) => {
     res.cookie("token", null, {
         expires: new Date(Date.now()),
@@ -175,9 +202,16 @@ export const logoutUser = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-// 5. Get User Profile (Current User)
+// 5. Get Current User Profile
 export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
-    const { password, verificationCode, verificationCodeExpire, resetPasswordToken, resetPasswordExpire, ...safeUser } = req.user;
+    const {
+        password,
+        verificationCode,
+        verificationCodeExpire,
+        resetPasswordToken,
+        resetPasswordExpire,
+        ...safeUser
+    } = req.user;
 
     res.status(200).json({
         success: true,
@@ -187,7 +221,7 @@ export const getUserProfile = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-// 6. Forgot Password 
+// 6. Forgot Password
 export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
     const { email } = req.body;
 
@@ -198,8 +232,8 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
     }
 
     const docId = userSnapshot.docs[0].id;
-    const resetToken = generateVerificationCode(); 
-    const resetTokenExpire = new Date(Date.now() + 15 * 60 * 1000); 
+    const resetToken = generateVerificationCode();
+    const resetTokenExpire = new Date(Date.now() + 15 * 60 * 1000);
 
     await db.collection("users").doc(docId).update({
         resetPasswordToken: resetToken.toString(),
@@ -217,7 +251,7 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
     }
 });
 
-// 7. Reset Password 
+// 7. Reset Password
 export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     const { email, otp, newPassword, confirmNewPassword } = req.body;
 
@@ -234,8 +268,11 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     const user = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-    // ensure the supplied token matches what's stored and hasn't expired
-    if (user.resetPasswordToken !== otp.toString() || user.resetPasswordExpire.toDate() < new Date()) {
+  // for Firestore Timestamp
+    if (
+        user.resetPasswordToken !== otp.toString() ||
+        user.resetPasswordExpire.toDate() < new Date()
+    ) {
         return next(new ErrorHandler("Invalid or expired OTP", 400));
     }
 
@@ -255,7 +292,8 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-// 8. Update Password 
+// 8. Update Password (Authenticated)
+
 export const updatePassword = catchAsyncErrors(async (req, res, next) => {
     const { oldPassword, newPassword, confirmNewPassword } = req.body;
 
@@ -270,9 +308,7 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
     const userDoc = await db.collection("users").doc(req.user.id).get();
     const user = userDoc.data();
 
-    // verify the old password before allowing change
     const isPasswordMatched = await bcrypt.compare(oldPassword, user.password);
-
     if (!isPasswordMatched) {
         return next(new ErrorHandler("Old Password is incorrect", 400));
     }
@@ -284,4 +320,157 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
     });
 
     sendToken({ id: req.user.id, ...user }, 200, res, "Password Updated Successfully");
+});
+
+// 9. Get All Users (Role-filtered)
+// • Admin  → sees only "User" accounts
+// • Super Admin → sees everyone (Users + Admins)
+export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
+    const requesterRole = req.user.role;
+    let usersQuery;
+
+    if (requesterRole === "Admin") {
+        // Admins can only monitor regular Users
+        usersQuery = await db
+            .collection("users")
+            .where("role", "==", "User")
+            .where("accountVerified", "==", true)
+            .get();
+    } else if (requesterRole === "Super Admin") {
+        // Super Admin sees every verified account
+        usersQuery = await db
+            .collection("users")
+            .where("accountVerified", "==", true)
+            .get();
+    } else {
+        return next(new ErrorHandler("Access denied.", 403));
+    }
+
+    const users = usersQuery.docs.map((doc) => {
+        const {
+            password,
+            verificationCode,
+            verificationCodeExpire,
+            resetPasswordToken,
+            resetPasswordExpire,
+            ...safeData
+        } = doc.data();
+        return { id: doc.id, ...safeData };
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Users fetched successfully.",
+        data: { users },
+        error: null,
+    });
+});
+
+// 10. Promote User → Admin  (Super Admin only)
+export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
+    const { userId } = req.params;
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        return next(new ErrorHandler("User not found.", 404));
+    }
+
+    const targetUser = userDoc.data();
+
+    // Prevent promoting yourself or another Super Admin
+    if (targetUser.email === SUPER_ADMIN_EMAIL) {
+        return next(new ErrorHandler("Cannot modify the Super Admin account.", 403));
+    }
+
+    if (targetUser.role === "Admin") {
+        return next(new ErrorHandler("This user is already an Admin.", 400));
+    }
+
+    if (targetUser.role === "Super Admin") {
+        return next(new ErrorHandler("Cannot modify the Super Admin account.", 403));
+    }
+
+    await userRef.update({ role: "Admin", updatedAt: new Date() });
+
+    res.status(200).json({
+        success: true,
+        message: `${targetUser.name} has been promoted to Admin.`,
+        data: { userId, newRole: "Admin" },
+        error: null,
+    });
+});
+
+// 11. Demote Admin → User  (Super Admin only)
+export const demoteToUser = catchAsyncErrors(async (req, res, next) => {
+    const { userId } = req.params;
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        return next(new ErrorHandler("User not found.", 404));
+    }
+
+    const targetUser = userDoc.data();
+
+    // Super Admin can never be demoted
+    if (targetUser.email === SUPER_ADMIN_EMAIL) {
+        return next(new ErrorHandler("Cannot modify the Super Admin account.", 403));
+    }
+
+    if (targetUser.role === "Super Admin") {
+        return next(new ErrorHandler("Cannot demote a Super Admin.", 403));
+    }
+
+    if (targetUser.role === "User") {
+        return next(new ErrorHandler("This account already has the User role.", 400));
+    }
+
+    await userRef.update({ role: "User", updatedAt: new Date() });
+
+    res.status(200).json({
+        success: true,
+        message: `${targetUser.name} has been demoted to User.`,
+        data: { userId, newRole: "User" },
+        error: null,
+    });
+});
+
+
+// 12. Delete User Account  (Super Admin only)
+// ═══════════════════════════════════════════════
+export const deleteUser = catchAsyncErrors(async (req, res, next) => {
+    const { userId } = req.params;
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+
+    const userRef = db.collection("users").doc(userId);
+    const userDoc = await userRef.get();
+
+    if (!userDoc.exists) {
+        return next(new ErrorHandler("User not found.", 404));
+    }
+
+    const targetUser = userDoc.data();
+
+    // Super Admin is undeletable
+    if (targetUser.email === SUPER_ADMIN_EMAIL) {
+        return next(new ErrorHandler("The Super Admin account cannot be deleted.", 403));
+    }
+
+    if (targetUser.role === "Super Admin") {
+        return next(new ErrorHandler("Cannot delete a Super Admin account.", 403));
+    }
+
+    await userRef.delete();
+
+    res.status(200).json({
+        success: true,
+        message: `Account for ${targetUser.name} (${targetUser.email}) has been deleted.`,
+        data: { userId },
+        error: null,
+    });
 });

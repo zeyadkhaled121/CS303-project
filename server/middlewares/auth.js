@@ -3,15 +3,19 @@ import ErrorHandler from "./errorMiddlewares.js";
 import jwt from "jsonwebtoken";
 import { db } from "../database/db.js";
 
-// 1. (Authentication)
+
+// 1. Authentication 
+// ──────────────────────────────────────────────
 export const isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
     let token;
 
+    //  Mobile path
     const authHeader = req.headers.authorization;
     if (authHeader && authHeader.startsWith("Bearer ")) {
         token = authHeader.split(" ")[1];
     }
 
+    // Web path
     if (!token && req.cookies) {
         token = req.cookies.token;
     }
@@ -36,14 +40,26 @@ export const isAuthenticatedUser = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("User no longer exists. Please register again.", 404));
     }
 
-    req.user = { id: userDoc.id, ...userDoc.data() };
+    const userData = userDoc.data();
+
+    const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
+    if (
+        SUPER_ADMIN_EMAIL &&
+        userData.email === SUPER_ADMIN_EMAIL &&
+        userData.role !== "Super Admin"
+    ) {
+        await db.collection("users").doc(userDoc.id).update({ role: "Super Admin" });
+        userData.role = "Super Admin";
+    }
+
+    req.user = { id: userDoc.id, ...userData };
     next();
 });
 
-// 2. (Authorization)
+// 2. Authorization  
+
 export const authorizeRoles = (...roles) => {
     return (req, res, next) => {
-        // req.user.role (isAuthenticatedUser)
         if (!roles.includes(req.user.role)) {
             return next(
                 new ErrorHandler(
