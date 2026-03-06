@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -11,9 +11,8 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { useDispatch } from "react-redux";
-import { login } from "../store/slices/authSlice";
-import API from "../api/axios";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../store/slices/authSlice";
 
 const LoginScreen = function ({ navigation }) {
   console.log("LoginScreen component mounted");
@@ -21,10 +20,20 @@ const LoginScreen = function ({ navigation }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  // local UI state
   const [rememberMe, setRememberME] = useState(false);
 
   const dispatch = useDispatch();
+  const auth = useSelector((s) => s.auth);
+
+  useEffect(() => {
+    if (auth.isAuthenticated) {
+      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
+    }
+    if (auth.error) {
+      Alert.alert('Login Failed', auth.error);
+    }
+  }, [auth.isAuthenticated, auth.error]);
 
   const validateInputs = () => {
     // check if email is empty
@@ -57,21 +66,9 @@ const LoginScreen = function ({ navigation }) {
   };
   // handle of login
   // called after user entered data and clicked login button
-  const handleLogin = async () => {
-    if (!validateInputs()) return; // when validateinput not return true stop
-    setIsLoading(true); // Show loading to user
-
-    try {
-      const response = await API.post('/api/v1/user/login', { email, password });
-      const { user, token } = response.data.data;
-      dispatch(login({ user, token }));
-      navigation.navigate("Home", { userName: user.name });
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert("Login Failed", error.response?.data?.message || "An error occurred during login");
-    } finally {
-      setIsLoading(false);
-    }
+  const handleLogin = () => {
+    if (!validateInputs()) return;
+    dispatch(loginUser({ email, password }));
   };
 
   //  THE UI
@@ -146,13 +143,13 @@ const LoginScreen = function ({ navigation }) {
           <TouchableOpacity
             style={[
               styles.loginButton,
-              isLoading && styles.loginButtonDisabled,
+              auth.loading && styles.loginButtonDisabled,
             ]}
             onPress={handleLogin}
-            disabled={isLoading}
+            disabled={auth.loading}
           >
             <Text style={styles.loginButtonText}>
-              {isLoading ? "Logging In..." : "Login"}
+              {auth.loading ? 'Logging In...' : 'Login'}
             </Text>
           </TouchableOpacity>
 
