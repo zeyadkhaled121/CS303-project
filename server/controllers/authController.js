@@ -6,11 +6,7 @@ import bcrypt from "bcrypt";
 import { sendVerificationCode } from "../utils/sendVerificationCode.js";
 import { sendToken } from "../utils/sendToken.js";
 
-
-
-// ═══════════════════════════════════════════════
 // 1. Register User (or Admin / Super Admin)
-// ═══════════════════════════════════════════════
 export const register = catchAsyncErrors(async (req, res, next) => {
     const { name, email, password, adminSecret } = req.body;
 
@@ -22,11 +18,10 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
     }
 
-    // ── Role assignment logic ──
     let assignedRole = "User";
 
     const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
-    // Super Admin takes priority over everything
+
     if (SUPER_ADMIN_EMAIL && email === SUPER_ADMIN_EMAIL) {
         assignedRole = "Super Admin";
     } else if (adminSecret) {
@@ -37,7 +32,10 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         }
     }
 
-    // look for an already-verified account
+    
+    const skipOTP = assignedRole === "Admin" || assignedRole === "Super Admin";
+
+    
     const verifiedUserQuery = await db
         .collection("users")
         .where("email", "==", email)
@@ -48,22 +46,24 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("User already exists and is verified. Please Login.", 400));
     }
 
-    // limit unverified registration attempts
+    
     const unverifiedUserQuery = await db
         .collection("users")
         .where("email", "==", email)
         .where("accountVerified", "==", false)
         .get();
 
-    if (unverifiedUserQuery.size >= 5) {
+    if (!skipOTP && unverifiedUserQuery.size >= 5) {
         return next(
             new ErrorHandler("You have exceeded the number of registration attempts. Contact support.", 400)
         );
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
-    const verificationCode = generateVerificationCode();
-    const verificationCodeExpire = new Date(Date.now() + 15 * 60 * 1000);
+    
+    
+    const verificationCode = skipOTP ? null : generateVerificationCode();
+    const verificationCodeExpire = skipOTP ? null : new Date(Date.now() + 15 * 60 * 1000);
 
     const userData = {
         name,
@@ -71,7 +71,7 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         password: hashedPassword,
         verificationCode,
         verificationCodeExpire,
-        accountVerified: false,
+        accountVerified: skipOTP ? true : false, 
         updatedAt: new Date(),
     };
 
@@ -87,26 +87,24 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         });
     }
 
+    
+    if (skipOTP) {
+        return res.status(201).json({
+            success: true,
+            message: `${assignedRole} account created and verified automatically.`,
+            data: null,
+            error: null
+        });
+    }
+
     try {
         await sendVerificationCode(verificationCode, email, res);
     } catch (error) {
-        // Log error but still return success to client so UI can navigate to OTP screen.
-        console.error("Failed to send verification email:", error);
-        // in development we also print the code so tester can copy it
-        console.log("[DEV] verification code for", email, "is", verificationCode);
-        // send a 200 response with a warning message
-        return res.status(200).json({
-            success: true,
-            message: "Registration saved but verification email could not be sent. Use the code below for testing.",
-            data: { email, code: verificationCode },
-            error: null,
-        });
+        return next(new ErrorHandler("Registration saved, but failed to send verification email.", 500));
     }
 });
 
-// ═══════════════════════════════════════════════
 // 2. Verify Email
-// ═══════════════════════════════════════════════
 export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const { email, otp } = req.body;
 
@@ -127,7 +125,7 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     const userData = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-    // Firestore Timestamp conversion
+    
     if (
         String(userData.verificationCode) !== String(otp) ||
         userData.verificationCodeExpire.toDate() < new Date()
@@ -149,9 +147,7 @@ export const verifyEmail = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-// ═══════════════════════════════════════════════
 // 3. Login User
-// ═══════════════════════════════════════════════
 export const loginUser = catchAsyncErrors(async (req, res, next) => {
     const { email, password } = req.body;
 
@@ -177,7 +173,7 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Invalid Email or Password", 401));
     }
 
-    // ── Hardcoded Super Admin enforcement at login ──
+   
     const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
     if (SUPER_ADMIN_EMAIL && email === SUPER_ADMIN_EMAIL && user.role !== "Super Admin") {
         await db.collection("users").doc(userId).update({ role: "Super Admin" });
@@ -189,9 +185,11 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
 
 // 4. Logout User
 export const logoutUser = catchAsyncErrors(async (req, res, next) => {
-    res.cookie("token", null, {
-        expires: new Date(Date.now()),
+    res.cookie("token", "", {
+        expires: new Date(0),
         httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
     });
 
     res.status(200).json({
@@ -259,6 +257,10 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Passwords do not match", 400));
     }
 
+    if (newPassword.length < 8 || newPassword.length > 16) {
+        return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
+    }
+
     const userSnapshot = await db.collection("users").where("email", "==", email).get();
 
     if (userSnapshot.empty) {
@@ -268,7 +270,6 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     const user = userSnapshot.docs[0].data();
     const docId = userSnapshot.docs[0].id;
 
-  // for Firestore Timestamp
     if (
         user.resetPasswordToken !== otp.toString() ||
         user.resetPasswordExpire.toDate() < new Date()
@@ -293,7 +294,6 @@ export const resetPassword = catchAsyncErrors(async (req, res, next) => {
 });
 
 // 8. Update Password (Authenticated)
-
 export const updatePassword = catchAsyncErrors(async (req, res, next) => {
     const { oldPassword, newPassword, confirmNewPassword } = req.body;
 
@@ -303,6 +303,10 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 
     if (newPassword !== confirmNewPassword) {
         return next(new ErrorHandler("New passwords do not match", 400));
+    }
+
+    if (newPassword.length < 8 || newPassword.length > 16) {
+        return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
     }
 
     const userDoc = await db.collection("users").doc(req.user.id).get();
@@ -323,21 +327,17 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 });
 
 // 9. Get All Users (Role-filtered)
-// • Admin  → sees only "User" accounts
-// • Super Admin → sees everyone (Users + Admins)
 export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
     const requesterRole = req.user.role;
     let usersQuery;
 
     if (requesterRole === "Admin") {
-        // Admins can only monitor regular Users
         usersQuery = await db
             .collection("users")
             .where("role", "==", "User")
             .where("accountVerified", "==", true)
             .get();
     } else if (requesterRole === "Super Admin") {
-        // Super Admin sees every verified account
         usersQuery = await db
             .collection("users")
             .where("accountVerified", "==", true)
@@ -380,7 +380,6 @@ export const promoteToAdmin = catchAsyncErrors(async (req, res, next) => {
 
     const targetUser = userDoc.data();
 
-    // Prevent promoting yourself or another Super Admin
     if (targetUser.email === SUPER_ADMIN_EMAIL) {
         return next(new ErrorHandler("Cannot modify the Super Admin account.", 403));
     }
@@ -417,7 +416,6 @@ export const demoteToUser = catchAsyncErrors(async (req, res, next) => {
 
     const targetUser = userDoc.data();
 
-    // Super Admin can never be demoted
     if (targetUser.email === SUPER_ADMIN_EMAIL) {
         return next(new ErrorHandler("Cannot modify the Super Admin account.", 403));
     }
@@ -440,9 +438,7 @@ export const demoteToUser = catchAsyncErrors(async (req, res, next) => {
     });
 });
 
-
 // 12. Delete User Account  (Super Admin only)
-// ═══════════════════════════════════════════════
 export const deleteUser = catchAsyncErrors(async (req, res, next) => {
     const { userId } = req.params;
     const SUPER_ADMIN_EMAIL = process.env.SUPER_ADMIN_EMAIL;
@@ -456,7 +452,6 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
 
     const targetUser = userDoc.data();
 
-    // Super Admin is undeletable
     if (targetUser.email === SUPER_ADMIN_EMAIL) {
         return next(new ErrorHandler("The Super Admin account cannot be deleted.", 403));
     }
