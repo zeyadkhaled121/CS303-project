@@ -1,65 +1,67 @@
 import React from 'react';
-import { View, Text, Image, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
 
-export default function BookCard({ cover, title, author, onPress, onBorrow }) {
+const { width } = Dimensions.get('window');
+
+export default function BookCard({ title, author, image, genre, status }) {
+  const imageUri = image?.url || 'https://via.placeholder.com/150';
+
   return (
-    <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: cover }} style={styles.cover} />
-      <View style={styles.info}>
-        <Text numberOfLines={2} style={styles.title}>{title}</Text>
-        <Text numberOfLines={1} style={styles.author}>{author}</Text>
-        <TouchableOpacity style={styles.borrowBtn} onPress={onBorrow}>
-          <Text style={styles.borrowText}>Borrow</Text>
-        </TouchableOpacity>
+    <View style={styles.card}>
+      <View style={styles.imageContainer}>
+        <Image 
+          source={{ uri: imageUri }} 
+          style={styles.image}
+          resizeMode="cover"
+        />
+        {status && (
+          <View style={styles.statusBadge}>
+            <Text style={styles.statusText}>{status}</Text>
+          </View>
+        )}
       </View>
-    </TouchableOpacity>
+      <View style={styles.info}>
+        <Text style={styles.title} numberOfLines={2}>{title}</Text>
+        <Text style={styles.author}>{author}</Text>
+        <Text style={styles.genre}>{genre}</Text>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
     backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    marginVertical: 6,
-    alignItems: 'center',
+    borderRadius: 15,
+    marginBottom: 15,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    overflow: 'hidden',
   },
-  cover: {
-    width: 72,
-    height: 96,
-    borderRadius: 6,
-    marginRight: 12,
-    backgroundColor: '#eee',
+  imageContainer: {
+    width: '100%',
+    height: 180,
+    backgroundColor: '#f0f0f0',
   },
-  info: {
-    flex: 1,
+  image: {
+    width: '100%',
+    height: '100%',
   },
-  title: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#111',
-  },
-  author: {
-    fontSize: 12,
-    color: '#666',
-    marginTop: 4,
-  },
-  borrowBtn: {
-    marginTop: 10,
-    alignSelf: 'flex-start',
-    backgroundColor: '#358a74',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
+  statusBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(53, 138, 116, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
     borderRadius: 8,
   },
-  borrowText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 12,
-  },
+  statusText: { color: '#fff', fontSize: 10, fontWeight: 'bold' },
+  info: { padding: 10 },
+  title: { fontSize: 14, fontWeight: 'bold', color: '#1e293b', height: 40 },
+  author: { fontSize: 12, color: '#64748b', marginTop: 2 },
+  genre: { fontSize: 10, color: '#358a74', fontWeight: '600', marginTop: 4 }
 });
