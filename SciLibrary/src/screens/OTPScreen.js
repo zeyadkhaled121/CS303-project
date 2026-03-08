@@ -12,12 +12,10 @@ import {
 } from "react-native";
 import API from "../api/axios";
 
-const OTPLENGTH = 4;
+const OTPLENGTH = 6; 
 const RESENDTIMERSECONDS = 60;
 
 function OTPScreen({ navigation, route }) {
-  // debug incoming parameters
-  console.log("OTPScreen params", route?.params);
   const [otp, setOtp] = useState(Array(OTPLENGTH).fill(""));
   const { email, code } = route.params || {};
   const [secondsLeft, setSecondsLeft] = useState(RESENDTIMERSECONDS);
@@ -28,6 +26,7 @@ function OTPScreen({ navigation, route }) {
       .fill(null)
       .map(() => React.createRef()),
   );
+
   useEffect(() => {
     const interval = setInterval(() => {
       setSecondsLeft((prev) => {
@@ -41,6 +40,7 @@ function OTPScreen({ navigation, route }) {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
   const handleOtpChange = (text, index) => {
     const cleaned = text.replace(/[^0-9]/g, "").slice(0, 1);
     const newOtp = [...otp];
@@ -56,6 +56,7 @@ function OTPScreen({ navigation, route }) {
       inputRefs.current[index - 1].current.focus();
     }
   };
+
   const verifyOtp = async (otpCode) => {
     const codeToVerify = otpCode || otp.join("");
 
@@ -67,7 +68,7 @@ function OTPScreen({ navigation, route }) {
     setIsVerifying(true);
 
     try {
-      const response = await API.post("/api/v1/user/verify-email", {
+      await API.post("/api/v1/user/verify-email", {
         email,
         otp: codeToVerify,
       });
@@ -88,11 +89,8 @@ function OTPScreen({ navigation, route }) {
     }
   };
 
-  // RESEND OTP
-
   const handleResend = () => {
     if (!canResend) return;
-    // in a real app you would call an API to resend the code
     Alert.alert("OTP Sent!", `A new code has been sent to ${email}`);
 
     setSecondsLeft(RESENDTIMERSECONDS);
@@ -118,8 +116,8 @@ function OTPScreen({ navigation, route }) {
     const s = (secs % 60).toString().padStart(2, "0");
     return `${m}:${s}`;
   };
+
   useEffect(() => {
-    // if we receive code from params (dev mode), fill and verify automatically
     if (code) {
       const codeStr = String(code);
       setOtp(codeStr.split(""));
@@ -128,7 +126,6 @@ function OTPScreen({ navigation, route }) {
   }, [code]);
 
   if (!email) {
-    // nothing to verify, show fallback so screen isn't blank
     return (
       <View style={[styles.container, {justifyContent: 'center', alignItems: 'center'}]}>
         <Text style={{fontSize:16, color:'#333'}}>No email provided</Text>
@@ -141,7 +138,6 @@ function OTPScreen({ navigation, route }) {
 
   return (
     <View style={styles.container}>
-      {/* Show code for debugging if available */}
       {code && (
         <Text style={styles.debugCode}>Code: {code}</Text>
       )}
@@ -153,14 +149,11 @@ function OTPScreen({ navigation, route }) {
       </TouchableOpacity>
 
       <View style={styles.header}>
-        {/* <Text style={styles.emoji}></Text> */}
         <Text style={styles.title}>Verify Your Email</Text>
         <Text style={styles.subtitle}>
           We sent a {OTPLENGTH}-digit code to{"\n"}
           <Text style={styles.emailHighlight}>{email}</Text>
         </Text>
-
-        <Text style={styles.demoHint}>(Demo: use 123456)</Text>
       </View>
 
       <View style={styles.otpRow}>
@@ -209,64 +202,24 @@ function OTPScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f0f4ff",
-    padding: 24,
-    paddingTop: 60,
-  },
-  backButton: {
-    marginBottom: 30,
-  },
-  backText: {
-    color: "#2c7360",
-    fontSize: 16,
-    fontWeight: "600",
-  },
-  header: {
-    alignItems: "center",
-    marginBottom: 40,
-  },
-  emoji: {
-    fontSize: 60,
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 26,
-    fontWeight: "bold",
-    color: "#2c7360",
-    marginBottom: 12,
-  },
-  subtitle: {
-    fontSize: 15,
-    color: "#666",
-    textAlign: "center",
-    lineHeight: 22,
-  },
-  emailHighlight: {
-    fontWeight: "bold",
-    color: "#2c7360",
-  },
-  demoHint: {
-    marginTop: 8,
-    fontSize: 12,
-    color: "#ff9800",
-    fontStyle: "italic",
-  },
-  otpRow: {
-    flexDirection: "row",
-    justifyContent: "center",
-    gap: 10,
-    marginBottom: 36,
-  },
+  container: { flex: 1, backgroundColor: "#f0f4ff", padding: 20, paddingTop: 60 },
+  backButton: { marginBottom: 30 },
+  backText: { color: "#2c7360", fontSize: 16, fontWeight: "600" },
+  header: { alignItems: "center", marginBottom: 40 },
+  title: { fontSize: 26, fontWeight: "bold", color: "#2c7360", marginBottom: 12 },
+  subtitle: { fontSize: 15, color: "#666", textAlign: "center", lineHeight: 22 },
+  emailHighlight: { fontWeight: "bold", color: "#2c7360" },
+  debugCode: { textAlign: 'center', color: '#ff9800', marginBottom: 10 },
+  
+  otpRow: { flexDirection: "row", justifyContent: "center", gap: 8, marginBottom: 36 },
   otpBox: {
-    width: 48,
-    height: 56,
+    width: 42, 
+    height: 52, 
     backgroundColor: "#fff",
     borderWidth: 2,
     borderColor: "#dde1f0",
-    borderRadius: 12,
-    fontSize: 22,
+    borderRadius: 10,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#2c7360",
     shadowColor: "#000",
@@ -275,46 +228,16 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 3,
   },
-  otpBoxFilled: {
-    borderColor: "#2c7360",
-    backgroundColor: "#eef0ff",
-  },
-  verifyBtn: {
-    backgroundColor: "#2c7360",
-    borderRadius: 14,
-    paddingVertical: 16,
-    alignItems: "center",
-    marginHorizontal: 4,
-    marginBottom: 24,
-  },
-  verifyBtnDisabled: {
-    backgroundColor: "#9fa8da",
-  },
-  verifyBtnText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  resendSection: {
-    alignItems: "center",
-    gap: 8,
-  },
-  resendLabel: {
-    color: "#888",
-    fontSize: 14,
-  },
-  resendLink: {
-    color: "#2c7360",
-    fontSize: 15,
-    fontWeight: "bold",
-  },
-  timerText: {
-    color: "#888",
-    fontSize: 14,
-  },
-  timerNumber: {
-    color: "#2c7360",
-    fontWeight: "bold",
-  },
+  otpBoxFilled: { borderColor: "#2c7360", backgroundColor: "#eef0ff" },
+  
+  verifyBtn: { backgroundColor: "#2c7360", borderRadius: 14, paddingVertical: 16, alignItems: "center", marginHorizontal: 4, marginBottom: 24 },
+  verifyBtnDisabled: { backgroundColor: "#9fa8da" },
+  verifyBtnText: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+  resendSection: { alignItems: "center", gap: 8 },
+  resendLabel: { color: "#888", fontSize: 14 },
+  resendLink: { color: "#2c7360", fontSize: 15, fontWeight: "bold" },
+  timerText: { color: "#888", fontSize: 14 },
+  timerNumber: { color: "#2c7360", fontWeight: "bold" },
 });
+
 export default OTPScreen;
