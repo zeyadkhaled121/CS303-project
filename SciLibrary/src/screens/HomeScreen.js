@@ -1,131 +1,112 @@
-import React, { useMemo, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, TouchableOpacity } from 'react-native';
-import SearchBar from '../components/SearchBar';
-import CategoryList from '../components/CategoryList';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity } from 'react-native';
+import { useSelector, useDispatch } from 'react-redux';
+import { fetchAllBooks } from '../store/books';
 import BookCard from '../components/BookCard';
-import { books as allBooks } from '../store/books';
-import Toast from 'react-native-toast-message';
+import SearchBar from '../components/SearchBar';
 
- function HomeScreen({ navigation }) {
-  const [query, setQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState(null);
+export default function HomeScreen({ navigation }) {
+  const dispatch = useDispatch();
+  const { books, loading } = useSelector((state) => state.book);
+  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const categories = useMemo(() => ['All', 'Fiction', 'Non-Fiction', 'Science', 'History'], []);
+  useEffect(() => {
+    dispatch(fetchAllBooks());
+  }, [dispatch]);
 
-  const filteredBooks = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    return allBooks.filter((b) => {
-      const matchesQuery = q ? (b.title.toLowerCase().includes(q) || b.author.toLowerCase().includes(q)) : true;
-      const matchesCategory = selectedCategory && selectedCategory !== 'All' ? (b?.category === selectedCategory) : true;
-      return matchesQuery && matchesCategory;
-    });
-  }, [query, selectedCategory]);
+  const filteredBooks = books.filter((book) => {
+    if (!searchTerm) return true;
+    const term = searchTerm.toLowerCase();
+    return (
+      book.title?.toLowerCase().includes(term) ||
+      book.author?.toLowerCase().includes(term) ||
+      book.genre?.toLowerCase().includes(term)
+    );
+  });
 
-  const popularBooks = useMemo(() => filteredBooks.slice(0, 4), [filteredBooks]);
-  const recentlyAdded = useMemo(() => filteredBooks.slice().reverse().slice(0, 6), [filteredBooks]);
-
-  const handleBorrow = (book) => {
-    Toast.show({ type: 'info', text1: 'Borrow', text2: `Requested to borrow: ${book.title}` });
-  };
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
 
   return (
     <View style={styles.container}>
-      <View style={styles.headerRow}>
-        <Text style={styles.welcome}>Welcome back!</Text>
-        <Text style={styles.subtitle}>Find your next read</Text>
-      </View>
-
-      <SearchBar value={query} onChangeText={setQuery} />
-
-      <CategoryList categories={categories} onSelectCategory={(c) => setSelectedCategory(c)} />
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Popular Books</Text>
-          <TouchableOpacity onPress={() => Toast.show({ text1: 'View All', text2: 'Open popular books list' })}>
-            <Text style={styles.viewAll}>View All</Text>
-          </TouchableOpacity>
+      <View style={styles.header}>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.greeting}>
+            {isAuthenticated ? `Welcome, ${user?.name}!` : 'Library Catalog'}
+          </Text>
+          <Text style={styles.subGreeting}>
+            {isAuthenticated ? 'Discover your next great read.' : 'Login to borrow books'}
+          </Text>
         </View>
 
-        <FlatList
-          data={popularBooks}
-          horizontal
-          keyExtractor={(item) => item.id.toString()}
-          showsHorizontalScrollIndicator={false}
-          renderItem={({ item }) => (
-            <BookCard
-              cover={item.cover}
-              title={item.title}
-              author={item.author}
-              onPress={() => navigation.navigate('Home')}
-              onBorrow={() => handleBorrow(item)}
-            />
+        <View style={styles.headerActions}>
+          {isAdmin && (
+            <TouchableOpacity onPress={() => navigation.navigate('AdminDashboard')} style={styles.iconBtn}>
+              <Text style={{ fontSize: 20 }}>⚙️</Text>
+            </TouchableOpacity>
           )}
-        />
-      </View>
-
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recently Added</Text>
+          
+          {isAuthenticated ? (
+            <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.iconBtn}>
+              <Text style={{ fontSize: 20 }}>👤</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity onPress={() => navigation.navigate('Login')} style={styles.loginBtn}>
+              <Text style={styles.loginBtnText}>Login</Text>
+            </TouchableOpacity>
+          )}
         </View>
-
-        <FlatList
-          data={recentlyAdded}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={({ item }) => (
-            <BookCard
-              cover={item.cover}
-              title={item.title}
-              author={item.author}
-              onPress={() => navigation.navigate('Home')}
-              onBorrow={() => handleBorrow(item)}
-            />
-          )}
-        />
       </View>
 
-      <Toast />
+      <SearchBar 
+        value={searchTerm} 
+        onChangeText={setSearchTerm} 
+        placeholder="Search for books, authors..." 
+      />
+
+      <View style={styles.listContainer}>
+        {loading && books.length === 0 ? (
+          <ActivityIndicator size="large" color="#358a74" style={{ marginTop: 50 }} />
+        ) : filteredBooks.length === 0 ? (
+          <Text style={styles.emptyText}>No books found.</Text>
+        ) : (
+          <FlatList
+            data={filteredBooks}
+            keyExtractor={(item) => item._id || item.id?.toString()}
+            numColumns={2}
+            columnWrapperStyle={styles.row}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={{ paddingBottom: 20 }}
+            renderItem={({ item }) => (
+              <View style={styles.cardWrapper}>
+                <BookCard 
+                  title={item.title} 
+                  author={item.author} 
+                  image={item.image} 
+                  genre={item.genre}
+                  status={item.status} 
+                  onPress={() => navigation.navigate('BookDetails', { book: item })} 
+                />
+              </View>
+            )}
+          />
+        )}
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 14,
-    backgroundColor: '#f9f9f9',
-  },
-  headerRow: {
-    marginTop: 6,
-    marginBottom: 6,
-  },
-  welcome: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0f172a',
-  },
-  subtitle: {
-    fontSize: 14,
-    color: '#475569',
-    marginTop: 4,
-  },
-  section: {
-    marginTop: 12,
-  },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: '#0f172a',
-  },
-  viewAll: {
-    color: '#358a74',
-    fontWeight: '600',
-  },
+  container: { flex: 1, backgroundColor: '#f4f7f6', paddingHorizontal: 16, paddingTop: 50 },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
+  greeting: { fontSize: 22, fontWeight: 'bold', color: '#1f2937' },
+  subGreeting: { fontSize: 13, color: '#6b7280', marginTop: 2 },
+  headerActions: { flexDirection: 'row', gap: 10, alignItems: 'center' },
+  iconBtn: { backgroundColor: '#fff', padding: 8, borderRadius: 12, elevation: 2, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, shadowOffset: { width: 0, height: 2 } },
+  loginBtn: { backgroundColor: '#358a74', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8 },
+  loginBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 12 },
+  listContainer: { flex: 1, marginTop: 10 },
+  row: { justifyContent: 'space-between' },
+  cardWrapper: { width: '48%' },
+  emptyText: { textAlign: 'center', color: '#9ca3af', marginTop: 50, fontSize: 16 },
 });
-export default HomeScreen ; 
