@@ -15,16 +15,17 @@ import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../store/slices/authSlice";
 
 const LoginScreen = function ({ navigation }) {
-  console.log("LoginScreen component mounted");
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  // local UI state
   const [rememberMe, setRememberME] = useState(false);
 
   const dispatch = useDispatch();
   const auth = useSelector((s) => s.auth);
+
+  useEffect(() => {
+    console.log("LoginScreen component mounted");
+  }, []);
 
   useEffect(() => {
     if (auth.isAuthenticated) {
@@ -36,42 +37,35 @@ const LoginScreen = function ({ navigation }) {
   }, [auth.isAuthenticated, auth.error]);
 
   const validateInputs = () => {
-    // check if email is empty
     if (!email.trim()) {
       Alert.alert("Validation Error", "Please enter your email address.");
       return false;
     }
-    // check if email have regular exp.
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       Alert.alert("Validation Error", "Please enter a valid email address.");
       return false;
     }
-    // check if pass is empty
     if (!password.trim()) {
       Alert.alert("Validation Error", "Please enter your password.");
       return false;
     }
-    // check length of pass
-    if (password.length < 6 || password.length > 16) {
+    if (password.length < 8 || password.length > 16) {
       Alert.alert(
         "Validation Error",
-        "Password must be at least 6 characters and not greater than 16 characters.",
+        "Password must be at least 8 characters and not greater than 16 characters.",
       );
       return false;
     }
 
-    // all thing pervouis is okey
     return true;
   };
-  // handle of login
-  // called after user entered data and clicked login button
+  
   const handleLogin = () => {
     if (!validateInputs()) return;
     dispatch(loginUser({ email, password }));
   };
 
-  //  THE UI
 
   return (
     <KeyboardAvoidingView
@@ -79,21 +73,10 @@ const LoginScreen = function ({ navigation }) {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
     >
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        {/* <View style={styles.headerSection}>
-          <Text style={styles.logo}>
-            <Image
-              source={require("/mnt/storage/projects of learning/CS303-project/SciLibrary/assets/image.png")}
-            />
-          </Text>
-          <Text style={styles.title}>SCi-Library</Text>
-          <Text style={styles.subtitle}>Your digital reading companion</Text> */}
-        {/* </View> */}
-
         <View style={styles.formSection}>
           <Text style={styles.formTitle}>Welcome Back!</Text>
           <Text style={styles.formSubtitle}>Sign in to continue reading</Text>
 
-          {/* EMAIL INPUT */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Email Address</Text>
             <TextInput
@@ -101,14 +84,12 @@ const LoginScreen = function ({ navigation }) {
               placeholder="Enter your email"
               placeholderTextColor="#aaa"
               value={email}
-              // 'text' is the new full value of the input
               onChangeText={(text) => setEmail(text)}
               keyboardType="email-address"
               autoCapitalize="none"
               autoCorrect={false}
             />
           </View>
-          {/* PASSWORD INPUT */}
           <View style={styles.inputContainer}>
             <Text style={styles.inputLabel}>Password</Text>
             <View style={styles.passwordRow}>
@@ -118,11 +99,9 @@ const LoginScreen = function ({ navigation }) {
                 placeholderTextColor="#aaa"
                 value={password}
                 onChangeText={(text) => setPassword(text)}
-                // secureTextEntry hides text (shows dots) when true
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
               />
-              {/* Toggle show/hide password */}
               <TouchableOpacity
                 style={styles.eyeButton}
                 onPress={() => setShowPassword(!showPassword)}
@@ -138,8 +117,6 @@ const LoginScreen = function ({ navigation }) {
             <Text style={styles.forgotText}>Forgot Password?</Text>
           </TouchableOpacity>
 
-          {/* LOGIN BUTTON */}
-
           <TouchableOpacity
             style={[
               styles.loginButton,
@@ -153,7 +130,6 @@ const LoginScreen = function ({ navigation }) {
             </Text>
           </TouchableOpacity>
 
-          {/* REGISTER LINK */}
           <View style={styles.registerRow}>
             <Text style={styles.registerText}>Don't have an account? </Text>
             <TouchableOpacity onPress={() => navigation.navigate("Register")}>
@@ -165,6 +141,7 @@ const LoginScreen = function ({ navigation }) {
     </KeyboardAvoidingView>
   );
 };
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -179,17 +156,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 40,
   },
-  // logo: {
-  //   fontSize: 60,
-  //   marginBottom: 8,
-  //   resizeMode:"center",
-  // },
-  // title: {
-  //   fontSize: 32,
-  //   fontWeight: "bold",
-  //   color: "#086f27",
-  //   letterSpacing: 1,
-  // },
   subtitle: {
     fontSize: 14,
     color: "#666",
@@ -250,7 +216,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
   },
   forgotContainer: {
-    alignSelf: "flex-end", // Push to right side
+    alignSelf: "flex-end",
     marginBottom: 20,
   },
   forgotText: {
