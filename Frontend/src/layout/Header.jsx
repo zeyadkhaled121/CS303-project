@@ -1,13 +1,14 @@
 import React, { useState, useRef, useEffect } from "react";
 import { FaSearch, FaChevronDown, FaUserAlt, FaSignOutAlt } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
 import logoImg from "../assets/logo.png";
 
-const Header = () => {
+const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearchTerm }) => {
   const dispatch = useDispatch();
   const navigateTo = useNavigate();
+  const location = useLocation();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
   
@@ -29,7 +30,7 @@ const Header = () => {
   const handleLogout = () => {
     dispatch(logout());
     setDropdownOpen(false);
-    navigateTo("/login");
+    navigateTo("/");
   };
 
   return (
@@ -39,7 +40,7 @@ const Header = () => {
       <div className="flex items-center h-full">
         <div 
           className="cursor-pointer flex items-center transition-transform " 
-          onClick={() => navigateTo("/")}
+          onClick={() => { setSelectedComponent("Dashboard"); navigateTo("/"); }}
         >
           <img 
             src={logoImg} 
@@ -50,14 +51,16 @@ const Header = () => {
         </div>
       </div>
 
-      {/* Search Bar Section */}
-      <div className="flex-1 max-w-2xl mx-8">
-        <form className="relative group">
+      {/* Search Bar Section - hidden on settings page */}
+      <div className={`flex-1 max-w-2xl mx-8 ${location.pathname === "/settings" ? "hidden" : ""}`}>
+        <form className="relative group" onSubmit={(e) => e.preventDefault()}>
           <input
             type="text"
             name="search"
             autoComplete="off"
             placeholder="Search for books, authors..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full h-11 text-white placeholder:text-emerald-100/70 bg-white/10 hover:bg-white/20 focus:bg-white/20 rounded-xl py-2 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-white/30 transition-all duration-300 border border-transparent focus:border-white/20"
           />
           <button type="submit" className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -92,7 +95,7 @@ const Header = () => {
                   <p className="text-[10px] text-gray-400 uppercase font-bold tracking-wider">Account</p>
                 </div>
                 <button
-                  onClick={() => { setDropdownOpen(false); navigateTo("/profile"); }}
+                  onClick={() => { setDropdownOpen(false); navigateTo("/settings"); }}
                   className="flex w-full items-center gap-3 px-4 py-2.5 text-sm text-gray-700 hover:bg-emerald-50 hover:text-[#358a74] transition-colors"
                 >
                   <FaUserAlt className="text-gray-400" />
