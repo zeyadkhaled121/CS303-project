@@ -1,17 +1,22 @@
 // src/pages/Settings.jsx
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
+import { Navigate, useNavigate } from "react-router-dom";
 import { 
   FaUser, FaLock, FaEnvelope, FaShieldAlt, 
   FaMoneyBillWave, FaUsers, FaPlusCircle, FaCogs 
 } from "react-icons/fa";
 import { updatePassword, resetAuthSlice } from "../store/slices/authSlice";
+import { toggleAddNewAdminPopup } from "../store/slices/popUpSlice";
+import AddNewAdmin from "../popups/AddNewAdmin";
 import { toast } from "react-toastify";
 
-const Settings = () => {
+const Settings = ({ setSelectedComponent }) => {
   const dispatch = useDispatch();
+  const navigateTo = useNavigate();
   
-  const { user, loading, error, message } = useSelector((state) => state.auth);
+  const { user, loading, error, message, isAuthenticated } = useSelector((state) => state.auth);
+  const { AddNewAdminPopup } = useSelector((state) => state.popup);
 
   const [passwordData, setPasswordData] = useState({
     oldPassword: "",
@@ -31,6 +36,20 @@ const Settings = () => {
     }
   }, [error, message, dispatch]);
 
+  // Auth guard: redirect to home if not authenticated (and not loading)
+  if (!isAuthenticated && !loading) {
+    return <Navigate to="/" replace />;
+  }
+
+  // Show loading state while user data is being fetched
+  if (!user) {
+    return (
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <p className="text-gray-400">Loading...</p>
+      </div>
+    );
+  }
+
   const handlePasswordUpdate = (e) => {
     e.preventDefault();
     if (passwordData.newPassword !== passwordData.confirmPassword) {
@@ -45,7 +64,7 @@ const Settings = () => {
 
   // إعدادات الأدوار (كلها تعتمد الآن على اللون الأخضر #358a74)
   const rolesConfig = {
-    SuperAdmin: {
+    "Super Admin": {
       title: "Super Admin Control",
       subtitle: "Full system authority and advanced configurations.",
       icon: <FaCogs className="text-[#358a74]" />,
@@ -121,6 +140,7 @@ const Settings = () => {
                 <input
                   type="password"
                   required
+                  value={passwordData.oldPassword}
                   className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
                   onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
                 />
@@ -131,6 +151,7 @@ const Settings = () => {
                   <input
                     type="password"
                     required
+                    value={passwordData.newPassword}
                     className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
                     onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
                   />
@@ -140,6 +161,7 @@ const Settings = () => {
                   <input
                     type="password"
                     required
+                    value={passwordData.confirmPassword}
                     className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
                     onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
                   />
@@ -159,7 +181,7 @@ const Settings = () => {
           </div>
 
 
-          {user?.role === "SuperAdmin" ? (
+          {user?.role === "Super Admin" ? (
             /* SuperAdmin  */
             <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
               <div className="flex items-center gap-4">
@@ -171,7 +193,10 @@ const Settings = () => {
                   <p className="text-xs text-[#358a74] font-medium tracking-wide uppercase">Add or Remove System Managers</p>
                 </div>
               </div>
-              <button className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200">
+              <button
+                onClick={() => dispatch(toggleAddNewAdminPopup())}
+                className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200"
+              >
                 Launch Tools
               </button>
             </div>
@@ -187,7 +212,10 @@ const Settings = () => {
                   <p className="text-xs text-[#358a74] font-medium tracking-wide uppercase">Member Records Access</p>
                 </div>
               </div>
-              <button className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200">
+              <button
+                onClick={() => { setSelectedComponent("AllUsers"); navigateTo('/'); }}
+                className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200"
+              >
                 Manage Users
               </button>
             </div>
@@ -214,6 +242,9 @@ const Settings = () => {
 
         </div>
       </div>
+
+      {/* Add New Admin Popup */}
+      {AddNewAdminPopup && <AddNewAdmin />}
     </div>
   );
 };
