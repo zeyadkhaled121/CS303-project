@@ -134,6 +134,9 @@ const authSlice = createSlice({
         state.loading = false;
         state.message = action.payload.message;
         // sendToken returns { success, message, data: { user, token } }
+        if (action.payload.data?.token) {
+          localStorage.setItem("token", action.payload.data.token);
+        }
         if (action.payload.data?.user) {
           state.user = action.payload.data.user;
         }
@@ -179,6 +182,9 @@ export const login = (data) => (dispatch) => {
   api
     .post("/api/v1/user/login", data)
     .then((res) => {
+      // Store token for Bearer auth on subsequent requests
+      const token = res.data.data?.token;
+      if (token) localStorage.setItem("token", token);
       dispatch(authSlice.actions.loginSuccess(res.data));
       toast.success(res.data.message || "Logged in successfully.", { position: "bottom-right" });
       dispatch(authSlice.actions.resetAuthSlice());
@@ -192,10 +198,12 @@ export const logout = () => (dispatch) => {
   api
     .get("/api/v1/user/logout")
     .then((res) => {
+      localStorage.removeItem("token");
       dispatch(authSlice.actions.logoutSuccess(res.data.message));
       toast.success("Logged out successfully");
     })
     .catch((error) => {
+      localStorage.removeItem("token");
       dispatch(authSlice.actions.logoutFailed(getErrorMsg(error)));
       toast.error(getErrorMsg(error));
     });
