@@ -13,7 +13,7 @@ const Login = () => {
   const navigateTo = useNavigate();
   
   // Extracting auth state from Redux
-  const { loading, error, message, isAuthenticated } = useSelector((state) => state.auth);
+  const { loading, error, isAuthenticated } = useSelector((state) => state.auth);
 
   // Form submission handler
   const handleLogin = (e) => {
@@ -34,15 +34,7 @@ const Login = () => {
       });
       dispatch(resetAuthSlice());
     }
-    
-    // Show success notifications
-    if (message) {
-      toast.success(message, {
-        position: "bottom-right",
-      });
-      dispatch(resetAuthSlice());
-    }
-  }, [isAuthenticated, error, message, navigateTo, dispatch]);
+  }, [isAuthenticated, error, navigateTo, dispatch]);
 
   return (
     /* Modal Overlay: Closes when clicking outside the content */
