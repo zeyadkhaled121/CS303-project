@@ -1,136 +1,214 @@
-import React, { useState } from "react";
-import { useDispatch } from "react-redux";
-import { addBook } from "../store/slices/bookSlice"; 
+import React, { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { addBook, updateBook } from "../store/slices/bookSlice";
 import { toggleAddBookPopup } from "../store/slices/popUpSlice";
-import { toast } from "react-toastify";
-import { X, Upload, Image as ImageIcon, BookOpen, Check } from "lucide-react";
+import { FaTimes, FaCloudUploadAlt, FaBook } from "react-icons/fa";
 
-const AddBookPopup = () => {
+const AddBookPopup = ({ editBook }) => {
   const dispatch = useDispatch();
-  const [formData, setFormData] = useState({ title: "", author: "", genre: "", edition: "" });
-  
-  const [imageFile, setImageFile] = useState(null); 
-  const [imagePreview, setImagePreview] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const { loading, error } = useSelector((state) => state.book);
+
+  const [title, setTitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [genre, setGenre] = useState("");
+  const [edition, setEdition] = useState("");
+  const [image, setImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+
+  const isEditing = !!editBook;
+
+  useEffect(() => {
+    if (editBook) {
+      setTitle(editBook.title || "");
+      setAuthor(editBook.author || "");
+      setGenre(editBook.genre || "");
+      setEdition(editBook.edition || "");
+      setImagePreview(editBook.image?.url || "");
+    }
+  }, [editBook]);
+
+  // Close popup when operation completes successfully
+  useEffect(() => {
+    if (submitted && !loading) {
+      if (!error) {
+        dispatch(toggleAddBookPopup());
+      }
+      setSubmitted(false);
+    }
+  }, [submitted, loading, error, dispatch]);
 
   const handleImageChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      setImageFile(file); 
-      const reader = new FileReader();
-      reader.onloadend = () => setImagePreview(reader.result);
-      reader.readAsDataURL(file);
+      setImage(file);
+      setImagePreview(URL.createObjectURL(file));
     }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
-    
-    if (!imageFile) {
-        return toast.error("Please upload a book cover image");
+
+    const formData = new FormData();
+    formData.append("title", title);
+    formData.append("author", author);
+    formData.append("genre", genre);
+    formData.append("edition", edition);
+    if (image) {
+      formData.append("image", image);
     }
 
-    setLoading(true);
-    
-    const data = new FormData();
-    data.append("title", formData.title);
-    data.append("author", formData.author);
-    data.append("genre", formData.genre);
-    data.append("edition", formData.edition);
-    data.append("image", imageFile); 
-
-    try {
-      await dispatch(addBook(data)).unwrap();
-      
-      toast.success("Book Added to Catalog", {
-        icon: <div className="bg-[#358a74] p-1 rounded-md text-white"><Check size={12}/></div>,
-        className: "rounded-[1.5rem] font-bold text-xs p-4"
-      });
-      
-      dispatch(toggleAddBookPopup());
-    } catch (error) {
-      toast.error(error || "Failed to add book");
-    } finally {
-      setLoading(false);
+    if (isEditing) {
+      dispatch(updateBook(editBook.id, formData));
+    } else {
+      dispatch(addBook(formData));
     }
+
+    setSubmitted(true);
   };
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/40 backdrop-blur-md p-4 overflow-y-auto">
-      <div className="bg-white w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden border border-white/20">
-        
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+      <div
+        className="bg-white rounded-3xl shadow-2xl p-8 w-full max-w-lg relative max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Close Button */}
+        <button
+          onClick={() => dispatch(toggleAddBookPopup())}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600 z-50"
+        >
+          <FaTimes size={18} />
+        </button>
+
         {/* Header */}
-        <div className="p-8 pb-4 text-center relative">
-          <button 
-            onClick={() => dispatch(toggleAddBookPopup())} 
-            className="absolute top-6 right-6 p-2 bg-gray-50 rounded-full text-gray-400 hover:text-red-500 transition-all"
-          >
-            <X size={18} />
-          </button>
-          
-          <div className="inline-flex p-3 bg-[#358a74]/10 rounded-2xl text-[#358a74] mb-3">
-            <BookOpen size={28} />
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-emerald-50 rounded-xl text-[#358a74]">
+            <FaBook size={20} />
           </div>
-          <h3 className="text-xl font-black text-gray-900 tracking-tight">Add New Book</h3>
-          <p className="text-[10px] text-[#358a74] font-black uppercase tracking-[0.2em] mt-1">Sci Library Records</p>
+          <div>
+            <h2 className="text-xl font-bold text-gray-800">
+              {isEditing ? "Edit Book" : "Add New Book"}
+            </h2>
+            <p className="text-xs text-gray-500">
+              {isEditing ? "Update the book details below." : "Fill in the details to add a new book."}
+            </p>
+          </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-8 pt-4 space-y-6">
-          
-          {/* Upload Area */}
-          <div className="group relative flex flex-col items-center justify-center border-2 border-dashed border-gray-100 rounded-[2rem] p-6 hover:border-[#358a74] transition-all bg-gray-50/50">
-            {imagePreview ? (
-              <div className="relative w-24 h-32 group">
-                <img src={imagePreview} className="w-full h-full object-cover rounded-xl shadow-xl" alt="preview" />
-                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity rounded-xl flex items-center justify-center">
-                  <p className="text-[10px] text-white font-bold">Change Cover</p>
+        {/* Form */}
+        <form onSubmit={handleSubmit} className="space-y-5">
+          {/* Image Upload */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Book Cover
+            </label>
+            <div
+              className="border-2 border-dashed border-gray-200 rounded-2xl p-6 text-center hover:border-[#358a74] transition-colors cursor-pointer"
+              onClick={() => document.getElementById("book-image-input").click()}
+            >
+              {imagePreview ? (
+                <div className="flex flex-col items-center">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="w-32 h-44 object-cover rounded-xl mb-3"
+                  />
+                  <p className="text-xs text-gray-500">Click to change image</p>
                 </div>
-              </div>
-            ) : (
-              <div className="text-center py-2">
-                <div className="mx-auto w-10 h-10 mb-2 bg-white rounded-xl flex items-center justify-center shadow-sm text-gray-300 group-hover:text-[#358a74] transition-colors">
-                  <ImageIcon size={20} />
+              ) : (
+                <div className="flex flex-col items-center">
+                  <FaCloudUploadAlt size={36} className="text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-500 font-medium">Click to upload book cover</p>
+                  <p className="text-xs text-gray-400 mt-1">PNG, JPG up to 5MB</p>
                 </div>
-                <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">Upload Cover Image</p>
-              </div>
-            )}
-            <input type="file" accept="image/*" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleImageChange} />
-          </div>
-
-          {/* Input Fields */}
-          <div className="grid grid-cols-1 gap-4">
-            <input 
-              placeholder="Book Title" required 
-              className="w-full p-4 bg-gray-50/80 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#358a74]/30 transition-all text-sm font-medium"
-              onChange={(e) => setFormData({...formData, title: e.target.value})}
-            />
-            
-            <input 
-              placeholder="Author Name" required 
-              className="w-full p-4 bg-gray-50/80 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#358a74]/30 transition-all text-sm font-medium"
-              onChange={(e) => setFormData({...formData, author: e.target.value})}
-            />
-
-            <div className="flex gap-3">
-              <input 
-                placeholder="Genre"
-                className="w-1/2 p-4 bg-gray-50/80 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#358a74]/30 transition-all text-sm font-medium"
-                onChange={(e) => setFormData({...formData, genre: e.target.value})}
-              />
-              <input 
-                placeholder="Edition"
-                className="w-1/2 p-4 bg-gray-50/80 border border-transparent rounded-2xl outline-none focus:bg-white focus:border-[#358a74]/30 transition-all text-sm font-medium"
-                onChange={(e) => setFormData({...formData, edition: e.target.value})}
+              )}
+              <input
+                id="book-image-input"
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
               />
             </div>
           </div>
 
-          <button 
-            disabled={loading}
-            className={`w-full py-4 ${loading ? 'bg-gray-400' : 'bg-[#358a74]'} text-white rounded-[1.5rem] font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-[#358a74]/20 hover:-translate-y-1 transition-all flex items-center justify-center gap-2`}
-          >
-            {loading ? "Adding..." : <><Upload size={16} /> Add Book</>}
-          </button>
+          {/* Title */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Title
+            </label>
+            <input
+              type="text"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="Enter book title"
+              required={!isEditing}
+              className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+            />
+          </div>
+
+          {/* Author */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Author
+            </label>
+            <input
+              type="text"
+              value={author}
+              onChange={(e) => setAuthor(e.target.value)}
+              placeholder="Enter author name"
+              required={!isEditing}
+              className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+            />
+          </div>
+
+          {/* Genre */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Genre
+            </label>
+            <input
+              type="text"
+              value={genre}
+              onChange={(e) => setGenre(e.target.value)}
+              placeholder="e.g. Science, Fiction, History"
+              required={!isEditing}
+              className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+            />
+          </div>
+
+          {/* Edition */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Edition
+            </label>
+            <input
+              type="text"
+              value={edition}
+              onChange={(e) => setEdition(e.target.value)}
+              placeholder="e.g. 1st, 2nd, 3rd"
+              required={!isEditing}
+              className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+            />
+          </div>
+
+          {/* Submit */}
+          <div className="pt-2">
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full py-3.5 rounded-xl font-bold text-white bg-[#358a74] hover:bg-[#2c7360] shadow-md hover:shadow-lg transition-all disabled:opacity-50 active:scale-95"
+            >
+              {loading
+                ? isEditing
+                  ? "Updating..."
+                  : "Adding..."
+                : isEditing
+                ? "Update Book"
+                : "Add Book"}
+            </button>
+          </div>
         </form>
       </div>
     </div>
