@@ -1,6 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FaPlus, FaTrash, FaEdit, FaUserShield, FaBook, FaEye } from "react-icons/fa";
+import { 
+  FaPlus, FaTrash, FaEdit, FaEye, FaLayerGroup, 
+  FaShieldAlt, FaBookOpen, FaInbox, FaTerminal 
+} from "react-icons/fa";
 import { fetchAllBooks, deleteBook, resetBookSlice } from "../store/slices/bookSlice";
 import { toggleAddBookPopup, toggleReadBookPopup } from "../store/slices/popUpSlice";
 import { toast } from "react-toastify";
@@ -13,16 +16,14 @@ const AdminDashboard = ({ searchTerm = "" }) => {
   const { books, loading, error, message } = useSelector((state) => state.book);
   const { addBookPopup, readBookPopup } = useSelector((state) => state.popup);
 
-
   const [selectedBook, setSelectedBook] = useState(null);
   const [editBook, setEditBook] = useState(null);
-
-  const isSuperAdmin = user?.role === "Super Admin";
 
   useEffect(() => {
     dispatch(fetchAllBooks());
   }, [dispatch]);
 
+  // Handle Notifications & State Reset
   useEffect(() => {
     if (error) {
       toast.error(error);
@@ -32,173 +33,207 @@ const AdminDashboard = ({ searchTerm = "" }) => {
       toast.success(message);
       dispatch(resetBookSlice());
       dispatch(fetchAllBooks());
-      setEditBook(null);
     }
   }, [error, message, dispatch]);
 
-  const handleDelete = (bookId, title) => {
-    if (window.confirm(`Are you sure you want to delete "${title}"?`)) {
-      dispatch(deleteBook(bookId));
+  const filteredBooks = useMemo(() => {
+    return books.filter((b) => 
+      b.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      b.genre?.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [books, searchTerm]);
+
+ const handleDeleteConfirm = (id, title) => {
+  toast(
+    ({ closeToast }) => (
+      <div className="flex flex-col items-center text-center w-full ltr">
+        
+        <div className="relative mb-4">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm transition-transform hover:rotate-12">
+            <FaBookOpen className="text-[#358a74]" size={20} />
+          </div>
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-rose-50 rounded-full flex items-center justify-center border border-white">
+            <FaTrash className="text-rose-500" size={8} />
+          </div>
+        </div>
+
+        {/* Content Section */}
+        <div className="space-y-1 mb-5">
+          <h4 className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-300">Sci Library</h4>
+          <p className="text-sm font-bold text-[#358a74] tracking-tight">Remove Book ?</p>
+          <div className="px-2 py-1 bg-slate-50 rounded-lg mt-2 inline-block">
+             <p className="text-[10px] font-black text-slate-500  truncate max-w-[160px]">
+               "{title}"
+             </p>
+          </div>
+        </div>
+
+        <div className="flex flex-col w-full gap-2">
+          <button
+            onClick={() => {
+              dispatch(deleteBook(id));
+              closeToast();
+            }}
+            className="w-full bg-[#358a74] text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] shadow-lg shadow-slate-200 hover:bg-rose-600 transition-all active:scale-95"
+          >
+            Confirm
+          </button>
+          <button
+            onClick={closeToast}
+            className="w-full bg-white text-slate-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] border border-slate-100 hover:bg-slate-50 transition-all"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ),
+    {
+      position: "top-center",
+      autoClose: false,
+      closeOnClick: false,
+      draggable: false,
+      className: "ltr !bg-white !rounded-[2.5rem] !p-7 !shadow-[0_20px_50px_rgba(0,0,0,0.1)] !max-w-[270px] !mx-auto !min-h-[auto] border border-slate-50",
+      bodyClassName: "!p-0 !m-0 !flex !justify-center",
+      icon: false,
+      closeButton: false,
     }
-  };
-
-  const handleView = (book) => {
-    setSelectedBook(book);
-    dispatch(toggleReadBookPopup());
-  };
-
-  const handleEdit = (book) => {
-    setEditBook(book);
-    dispatch(toggleAddBookPopup());
-  };
-
-  const handleAddNew = () => {
-    setEditBook(null);
-    dispatch(toggleAddBookPopup());
-  };
-
-  const filteredBooks = books.filter(
-    (book) =>
-      book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.genre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+};
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header Section */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            {isSuperAdmin ? (
-              <FaUserShield className="text-[#358a74]" />
-            ) : (
-              <FaBook className="text-[#358a74]" />
-            )}
-            {isSuperAdmin ? "Super Admin Dashboard" : "Admin Dashboard"}
+    <div className="max-w-[1600px] mx-auto p-4 lg:p-8 space-y-8 animate-fadeIn text-slate-800">
+      
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        
+        {/* Profile & Action Card */}
+        <div className="lg:col-span-8 bg-white rounded-[2.5rem] p-8 shadow-sm border border-slate-100 flex flex-col md:flex-row justify-between items-center relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-50 rounded-full -mr-20 -mt-20 blur-3xl transition-all group-hover:bg-emerald-100" />
+          
+          <div className="relative z-10 space-y-4 text-center md:text-left">
+            <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100/50">
+              <FaShieldAlt className="text-[#358a74] text-[10px]" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-[#358a74]">Security Verified</span>
+            </div>
+            <h1 className="text-4xl font-light leading-tight">
+              Welcome, <span className="font-black text-slate-900">{user?.name?.split(' ')[0]}</span>
+              <p className="text-sm font-medium text-slate-400 mt-2 ">You have full control over the library catalog.</p>
+            </h1>
+          </div>
+
+          <button 
+            onClick={() => { setEditBook(null); dispatch(toggleAddBookPopup()); }}
+            className="relative z-10 mt-6 md:mt-0 bg-[#358a74] text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-emerald-200/50 hover:bg-slate-900 hover:shadow-slate-200 transition-all active:scale-95 flex items-center gap-3"
+          >
+            <FaPlus className="text-xs" /> <span>Add New Book</span>
+          </button>
+        </div>
+
+        {/* Quick Stats Bento */}
+        <div className="lg:col-span-4 grid grid-cols-2 gap-4">
+          <div className="bg-slate-900 rounded-[2rem] p-6 text-white flex flex-col justify-between group hover:ring-4 ring-slate-100 transition-all">
+            <FaLayerGroup className="text-emerald-400 text-xl group-hover:scale-110 transition-transform" />
+            <div>
+              <p className="text-4xl font-black  tracking-tighter">{books.length}</p>
+              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Total Catalog</p>
+            </div>
+          </div>
+          <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex flex-col justify-between shadow-sm group hover:border-[#358a74] transition-all">
+            <FaBookOpen className="text-[#358a74] text-xl group-hover:rotate-12 transition-transform" />
+            <div>
+              <p className="text-4xl font-black text-slate-900 tracking-tighter">
+                {books.filter(b => b.status === "Available").length}
+              </p>
+              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">In Stock</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* --- INNOVATIVE ASSET LIST --- */}
+      <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden">
+        <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+          <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-[#358a74]" /> Live Database
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            Welcome back, {user?.name}. Manage the library collection below.
-          </p>
+          <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+            Showing {filteredBooks.length} Books
+          </div>
         </div>
 
-        <button
-          onClick={handleAddNew}
-          className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl font-semibold hover:bg-[#2c7360] transition-all shadow-md flex items-center gap-2 active:scale-95"
-        >
-          <FaPlus /> Add New Book
-        </button>
-      </div>
-
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Total Books</p>
-          <p className="text-3xl font-black text-gray-900 mt-1">{books.length}</p>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Available</p>
-          <p className="text-3xl font-black text-[#358a74] mt-1">
-            {books.filter((b) => b.status === "Available").length}
-          </p>
-        </div>
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Genres</p>
-          <p className="text-3xl font-black text-gray-900 mt-1">
-            {[...new Set(books.map((b) => b.genre))].length}
-          </p>
-        </div>
-      </div>
-
-      {/* Books Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-4">Book</th>
-                <th className="px-6 py-4">Author</th>
-                <th className="px-6 py-4">Genre</th>
-                <th className="px-6 py-4">Edition</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-center">Actions</th>
+        <div className="overflow-x-auto px-4 pb-8">
+          <table className="w-full border-separate border-spacing-y-3">
+            <thead>
+              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                <th className="px-6 py-4 text-left">Asset Details</th>
+                <th className="px-6 py-4 text-left">Category</th>
+                <th className="px-6 py-4 text-left">Availability</th>
+                <th className="px-6 py-4 text-center">Control</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading && !books.length ? (
-                <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
-                    Loading books...
-                  </td>
-                </tr>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan="4" className="text-center py-20 text-slate-300 animate-pulse font-bold tracking-widest">Synchronizing Data...</td></tr>
               ) : filteredBooks.length === 0 ? (
                 <tr>
-                  <td colSpan="6" className="px-6 py-12 text-center text-gray-400">
-                    {searchTerm ? "No books match your search." : "No books in the library yet. Add your first book!"}
+                  <td colSpan="4" className="text-center py-20">
+                    <FaInbox className="mx-auto text-slate-100 text-6xl mb-4" />
+                    <p className="font-black text-slate-300 uppercase tracking-widest">No Matches Found</p>
                   </td>
                 </tr>
               ) : (
                 filteredBooks.map((book) => (
-                  <tr key={book.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-14 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                          {book.image?.url ? (
-                            <img
-                              src={book.image.url}
-                              alt={book.title}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <FaBook className="text-gray-300" />
-                            </div>
-                          )}
+                  <tr key={book.id} className="group hover:bg-slate-50/80 transition-all">
+                    <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 rounded-l-[2rem] transition-all">
+                      <div className="flex items-center gap-4">
+                        <div className="w-12 h-16 rounded-xl bg-slate-100 overflow-hidden shadow-sm group-hover:shadow-md transition-all duration-500">
+                          <img 
+                            src={book.image?.url } 
+                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                            alt={book.title}
+                          />
                         </div>
-                        <span className="font-semibold text-gray-800 text-sm">{book.title}</span>
+                        <div>
+                          <p className="text-sm font-black text-slate-900 leading-none">{book.title}</p>
+                          <p className="text-[10px] font-bold text-[#358a74] uppercase tracking-tighter mt-1">{book.author}</p>
+                        </div>
                       </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{book.author}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 text-[#358a74]">
-                        {book.genre}
-                      </span>
+                    <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 transition-all">
+                      <div className="flex flex-col">
+                        <span className="text-xs font-bold text-slate-600 ">#{book.genre}</span>
+                        <span className="text-[9px] text-slate-300 font-black tracking-widest uppercase mt-0.5">
+                          {book.edition || '1st'} Edition
+                        </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{book.edition}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex px-3 py-1 rounded-full text-xs font-bold ${
-                          book.status === "Available"
-                            ? "bg-green-50 text-green-600"
-                            : "bg-amber-50 text-amber-600"
-                        }`}
-                      >
+                    <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 transition-all">
+                      <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
+                        book.status === 'Available' 
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                        : 'bg-amber-50 text-amber-600 border-amber-100'
+                      }`}>
+                        <div className={`w-1.5 h-1.5 rounded-full ${book.status === 'Available' ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
                         {book.status}
-                      </span>
+                      </div>
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 rounded-r-[2rem] transition-all">
                       <div className="flex items-center justify-center gap-2">
-                        <button
-                          onClick={() => handleView(book)}
-                          className="p-2 rounded-lg hover:bg-blue-50 text-gray-400 hover:text-blue-500 transition-colors"
-                          title="View"
-                        >
-                          <FaEye size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleEdit(book)}
-                          className="p-2 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-[#358a74] transition-colors"
-                          title="Edit"
-                        >
-                          <FaEdit size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(book.id, book.title)}
-                          className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                          title="Delete"
-                        >
-                          <FaTrash size={14} />
-                        </button>
+                        <ExecutiveBtn 
+                          icon={<FaEye />} 
+                          color="hover:text-blue-500 hover:bg-blue-50" 
+                          onClick={() => { setSelectedBook(book); dispatch(toggleReadBookPopup()); }} 
+                        />
+                        <ExecutiveBtn 
+                          icon={<FaEdit />} 
+                          color="hover:text-emerald-500 hover:bg-emerald-50" 
+                          onClick={() => { setEditBook(book); dispatch(toggleAddBookPopup()); }} 
+                        />
+                        <ExecutiveBtn 
+                          icon={<FaTrash />} 
+                          color="hover:text-rose-500 hover:bg-rose-50" 
+                          onClick={() => handleDeleteConfirm(book.id, book.title)} 
+                        />
                       </div>
                     </td>
                   </tr>
@@ -209,11 +244,19 @@ const AdminDashboard = ({ searchTerm = "" }) => {
         </div>
       </div>
 
-      {/* Popups */}
       {addBookPopup && <AddBookPopup editBook={editBook} />}
       {readBookPopup && selectedBook && <ReadBookPopup book={selectedBook} />}
     </div>
   );
 };
+
+const ExecutiveBtn = ({ icon, color, onClick }) => (
+  <button 
+    onClick={onClick}
+    className={`w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-90 ${color}`}
+  >
+    {React.cloneElement(icon, { size: 12 })}
+  </button>
+);
 
 export default AdminDashboard;

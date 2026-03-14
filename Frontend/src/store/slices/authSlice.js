@@ -14,6 +14,7 @@ const authSlice = createSlice({
     message: null,
     user: null,
     isAuthenticated: false,
+    allUsers: [],
   },
   reducers: {
     // Registration
@@ -152,7 +153,18 @@ const authSlice = createSlice({
         state.user = state.user;
         state.loading = false
         state.isAuthenticated = state.isAuthenticated
-      }
+      },
+      getAllUsersRequest(state) {
+  state.loading = true;
+},
+getAllUsersSuccess(state, action) {
+  state.loading = false;
+  state.allUsers = action.payload; // تخزين الأعضاء هنا
+},
+getAllUsersFailed(state, action) {
+  state.loading = false;
+  state.error = action.payload;
+},
   },
 });
 
@@ -243,6 +255,13 @@ export const updatePassword = (data) => (dispatch) => {
     .put("/api/v1/user/password/update", data)
     .then((res) => dispatch(authSlice.actions.updatePasswordSuccess(res.data)))
     .catch((error) => dispatch(authSlice.actions.updatePasswordFailed(getErrorMsg(error))));
+};
+export const getAllUsers = () => (dispatch) => {
+  dispatch(authSlice.actions.getAllUsersRequest());
+  api
+    .get("/api/v1/user/getall") 
+    .then((res) => dispatch(authSlice.actions.getAllUsersSuccess(res.data.data.users)))
+    .catch((error) => dispatch(authSlice.actions.getAllUsersFailed(getErrorMsg(error))));
 };
 
 // 9. Reset transient state

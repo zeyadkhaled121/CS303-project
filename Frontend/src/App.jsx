@@ -11,37 +11,51 @@ import Settings from './pages/Settings';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { getUser } from "./store/slices/authSlice";
-
 import SideBar from "./layout/SideBar";
 import Header from "./layout/Header";
+import { fetchAllBooks } from "./store/slices/bookSlice";
+import UserProfile from "./components/UserProfile";
+import BorrowRequests from "./components/BorrowRequests"
 
 const App = () => {
   const dispatch = useDispatch();
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
 
-  // State to manage Sidebar collapse/expand status
   const [isSideBarOpen, setIsSideBarOpen] = useState(true);
-  
-  // State to track which component should be rendered in the main view
   const [selectedComponent, setSelectedComponent] = useState("Dashboard");
-
-  // State to track the search term from the Header search bar
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Fetch user profile on initial load to restore session from cookies
+  /**
+   * WATCHER: Reset Logic
+   * This effect triggers whenever the user identity OR their role changes.
+   * It ensures that an Admin switching to User view (or vice-versa) 
+   * starts fresh on the Dashboard with a clean search bar.
+   */
+  useEffect(() => {
+    setSelectedComponent("Dashboard");
+    setSearchTerm(""); // Reset search bar on role/user change
+  }, [user?._id, user?.role]); 
+
   useEffect(() => {
     dispatch(getUser());
+    dispatch(fetchAllBooks());
   }, [dispatch]);
 
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50 flex flex-col">
+      <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
         
-        <Header isSideBarOpen={isSideBarOpen} setIsSideBarOpen={setIsSideBarOpen} setSelectedComponent={setSelectedComponent} selectedComponent={selectedComponent} searchTerm={searchTerm} setSearchTerm={setSearchTerm} />
+        <Header 
+          isSideBarOpen={isSideBarOpen} 
+          setIsSideBarOpen={setIsSideBarOpen} 
+          setSelectedComponent={setSelectedComponent} 
+          selectedComponent={selectedComponent} 
+          searchTerm={searchTerm} 
+          setSearchTerm={setSearchTerm} 
+        />
         
-        <div className="flex flex-1 pt-16"> 
+        <div className="flex flex-1 pt-16 relative"> 
           
-          {/* Sidebar: only show when authenticated */}
           {isAuthenticated && (
             <SideBar 
               isSideBarOpen={isSideBarOpen} 
@@ -51,30 +65,31 @@ const App = () => {
             />
           )}
           
-          <main className={`transition-all duration-300 flex-1 
-                            ${isAuthenticated && isSideBarOpen ? "ml-64" : isAuthenticated ? "ml-20" : "ml-0"}`}>
-            <div className="p-6">
+          <main className={`transition-all duration-500 ease-in-out flex-1 
+            ${isAuthenticated && isSideBarOpen ? "md:ml-64" : isAuthenticated ? "md:ml-20" : "ml-0"}`}>
+            
+            <div className="w-full h-full min-h-[calc(100vh-64px)]">
               <Routes>
-                <Route path="/" element={<Home selectedComponent={selectedComponent} searchTerm={searchTerm} />}>
+                <Route path="/" element={<Home selectedComponent={selectedComponent} searchTerm={searchTerm}  setSelectedComponent={setSelectedComponent}/>}>
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
                 </Route>
                 
-                {/* Authentication & Security Routes */}
                 <Route path="/password/forgot" element={<ForgotPassword />} />
                 <Route path="/otp-verification/:email" element={<OTP />} />
                 <Route path="/password/reset" element={<ResetPassword />} />
-                
                 <Route path="/settings" element={<Settings setSelectedComponent={setSelectedComponent} />} />
+                <Route path="/user-profile/:userId" element={<UserProfile />} />
+                <Route path="/borrow-requests" element={<BorrowRequests />} />
               </Routes>
             </div>
           </main>
         </div>
         
-        {/* Global Toast Notifications */}
         <ToastContainer 
           theme="colored" 
-          position="top-right" 
+          position="bottom-right" 
+          toastStyle={{ backgroundColor: "#358a74" }}
           rtl={false} 
         />
       </div>

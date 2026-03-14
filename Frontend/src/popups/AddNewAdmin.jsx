@@ -29,7 +29,6 @@ const AddNewAdmin = () => {
         password,
         adminSecret,
       });
-      // تم تعديل الرسالة هنا عشان تناسب الباك إند الجديد
       toast.success(res.data.message || "Admin registered and verified successfully!");
       handleClose();
     } catch (error) {

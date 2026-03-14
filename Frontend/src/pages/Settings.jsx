@@ -1,4 +1,3 @@
-// src/pages/Settings.jsx
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { Navigate, useNavigate } from "react-router-dom";
@@ -36,16 +35,14 @@ const Settings = ({ setSelectedComponent }) => {
     }
   }, [error, message, dispatch]);
 
-  // Auth guard: redirect to home if not authenticated (and not loading)
   if (!isAuthenticated && !loading) {
     return <Navigate to="/" replace />;
   }
 
-  // Show loading state while user data is being fetched
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
-        <p className="text-gray-400">Loading...</p>
+        <p className="text-gray-400 animate-pulse">Loading System Settings...</p>
       </div>
     );
   }
@@ -62,24 +59,23 @@ const Settings = ({ setSelectedComponent }) => {
     }));
   };
 
-  // إعدادات الأدوار (كلها تعتمد الآن على اللون الأخضر #358a74)
   const rolesConfig = {
     "Super Admin": {
       title: "Super Admin Control",
       subtitle: "Full system authority and advanced configurations.",
-      icon: <FaCogs className="text-[#358a74]" />,
-      actionText: "Launch Admin Tools"
+      icon: <FaCogs />,
+      actionText: "Launch Tools"
     },
     Admin: {
       title: "Admin Settings",
       subtitle: "Manage your administrative account and security.",
-      icon: <FaShieldAlt className="text-[#358a74]" />,
+      icon: <FaShieldAlt />,
       actionText: "Manage Users"
     },
     User: {
       title: "Account Settings",
       subtitle: "Update your profile and check your library status.",
-      icon: <FaUser className="text-[#358a74]" />,
+      icon: <FaUser />,
       actionText: "View History"
     }
   };
@@ -87,82 +83,84 @@ const Settings = ({ setSelectedComponent }) => {
   const currentConfig = rolesConfig[user?.role] || rolesConfig.User;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 p-4 animate-fadeIn">
+    <div className="max-w-4xl mx-auto p-6 md:p-10 animate-fadeIn space-y-10">
       
       {/* Header Section */}
-      <header>
-        <h1 className="text-3xl font-extrabold text-gray-900 leading-tight">
+      <header className="mb-10">
+        <h1 className="text-4xl font-black text-slate-900 tracking-tight">
           {currentConfig.title}
         </h1>
-        <p className="text-gray-500 mt-2 font-medium">
+        <p className="text-slate-500 mt-2 font-medium">
           {currentConfig.subtitle}
         </p>
       </header>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
         
-        {/* Profile Card */}
+        {/* Left Column: Profile Card */}
         <div className="md:col-span-1">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 flex flex-col items-center text-center shadow-sm">
-            <div className="w-24 h-24 bg-[#358a74] text-white rounded-full flex items-center justify-center text-3xl font-bold mb-4 shadow-lg border-4 border-white">
+          <div className="bg-white p-8 rounded-[2.5rem] border border-slate-100 flex flex-col items-center text-center shadow-sm">
+            <div className="w-24 h-24 bg-[#358a74] text-white rounded-full flex items-center justify-center text-3xl font-bold mb-6 shadow-lg border-4 border-white transition-transform hover:scale-105">
               {user?.name?.charAt(0).toUpperCase()}
             </div>
-            <h3 className="text-xl font-bold text-gray-900">{user?.name}</h3>
             
-            <span className="inline-flex items-center px-3 py-1 rounded-full text-[10px] font-bold mt-2 uppercase tracking-wider bg-emerald-100 text-[#358a74]">
-              {currentConfig.icon} <span className="ml-1.5">{user?.role}</span>
+            <h3 className="text-xl font-black text-slate-800 tracking-tight">{user?.name}</h3>
+            
+            <span className="inline-flex items-center px-4 py-1.5 rounded-full text-[10px] font-black mt-3 uppercase tracking-widest bg-emerald-50 text-[#358a74] border border-emerald-100">
+              <span className="mr-2 opacity-70">{currentConfig.icon}</span> {user?.role}
             </span>
             
-            <div className="w-full border-t border-gray-50 mt-6 pt-6 space-y-4 text-left">
-              <div className="flex items-center gap-3 text-sm text-gray-600 font-medium">
-                <FaEnvelope className="text-[#358a74] flex-shrink-0" />
-                <span className="truncate">{user?.email}</span>
+            <div className="w-full border-t border-slate-50 mt-8 pt-8 space-y-4">
+              <div className="flex items-center justify-center gap-3 text-sm text-slate-600 font-bold">
+                <FaEnvelope className="text-[#358a74] flex-shrink-0 opacity-60" />
+                <span className="truncate max-w-[150px] italic lowercase">{user?.email}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column */}
-        <div className="md:col-span-2 space-y-6">
+        {/* Right Column: Content */}
+        <div className="md:col-span-2 space-y-8">
           
-          {/* Security Form - Always Green Theme */}
-          <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-3 bg-emerald-50 rounded-xl text-[#358a74]">
-                <FaLock />
+          {/* Security Form */}
+          <div className="bg-white p-8 md:p-10 rounded-[2.5rem] shadow-sm border border-slate-100">
+            <div className="flex items-center gap-4 mb-8">
+              <div className="p-3.5 bg-emerald-50 rounded-2xl text-[#358a74]">
+                <FaLock size={20} />
               </div>
-              <h3 className="text-xl font-bold text-gray-900">Security Credentials</h3>
+              <h3 className="text-xl font-black text-slate-800 uppercase tracking-tight">Security Credentials</h3>
             </div>
 
-            <form onSubmit={handlePasswordUpdate} className="space-y-5">
+            <form onSubmit={handlePasswordUpdate} className="space-y-6">
               <div>
-                <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Current Password</label>
+                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Current Password</label>
                 <input
                   type="password"
                   required
                   value={passwordData.oldPassword}
-                  className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+                  className="w-full border border-slate-100 bg-slate-50/50 rounded-2xl py-3.5 px-5 focus:ring-4 focus:ring-[#358a74]/5 focus:border-[#358a74] outline-none transition-all font-bold"
                   onChange={(e) => setPasswordData({...passwordData, oldPassword: e.target.value})}
                 />
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">New Password</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">New Password</label>
                   <input
                     type="password"
                     required
                     value={passwordData.newPassword}
-                    className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+                    className="w-full border border-slate-100 bg-slate-50/50 rounded-2xl py-3.5 px-5 focus:ring-4 focus:ring-[#358a74]/5 focus:border-[#358a74] outline-none transition-all font-bold"
                     onChange={(e) => setPasswordData({...passwordData, newPassword: e.target.value})}
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Confirm New</label>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Confirm New</label>
                   <input
                     type="password"
                     required
                     value={passwordData.confirmPassword}
-                    className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+                    className="w-full border border-slate-100 bg-slate-50/50 rounded-2xl py-3.5 px-5 focus:ring-4 focus:ring-[#358a74]/5 focus:border-[#358a74] outline-none transition-all font-bold"
                     onChange={(e) => setPasswordData({...passwordData, confirmPassword: e.target.value})}
                   />
                 </div>
@@ -172,78 +170,77 @@ const Settings = ({ setSelectedComponent }) => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full sm:w-auto px-10 py-3.5 rounded-xl font-bold text-white bg-[#358a74] hover:bg-[#2c7360] shadow-md hover:shadow-lg transition-all disabled:opacity-50 active:scale-95"
+                  className="w-full sm:w-auto px-12 py-4 rounded-2xl font-black text-[10px] uppercase tracking-widest text-white bg-[#358a74] hover:bg-[#2c7360] shadow-xl shadow-emerald-900/10 transition-all disabled:opacity-50 active:scale-95"
                 >
-                  {loading ? "Updating.." : "Update Password"}
+                  {loading ? "Syncing.." : "Update Password"}
                 </button>
               </div>
             </form>
           </div>
 
-
-          {user?.role === "Super Admin" ? (
-            /* SuperAdmin  */
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white text-[#358a74] rounded-2xl shadow-sm">
-                  <FaPlusCircle size={22} />
+          {/* Role-Based Actions */}
+          <div className="mt-8">
+            {user?.role === "Super Admin" ? (
+              <div className="bg-emerald-50 border border-emerald-100 p-8 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-white text-[#358a74] rounded-2xl shadow-sm border border-emerald-50">
+                    <FaPlusCircle size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg">Admin Management</h4>
+                    <p className="text-[10px] text-[#358a74] font-black uppercase tracking-widest">Authority Control</p>
+                  </div>
                 </div>
-                <div>
-                  <h4 className="font-bold text-gray-800">Admin Management</h4>
-                  <p className="text-xs text-[#358a74] font-medium tracking-wide uppercase">Add or Remove System Managers</p>
+                <button
+                  onClick={() => dispatch(toggleAddNewAdminPopup())}
+                  className="bg-[#358a74] text-white px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-emerald-200"
+                >
+                  {currentConfig.actionText}
+                </button>
+              </div>
+            ) : user?.role === "Admin" ? (
+              <div className="bg-emerald-50 border border-emerald-100 p-8 rounded-[2.5rem] flex flex-col sm:flex-row justify-between items-center gap-6">
+                <div className="flex items-center gap-5">
+                  <div className="p-4 bg-white text-[#358a74] rounded-2xl shadow-sm border border-emerald-50">
+                    <FaUsers size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg">Users Directory</h4>
+                    <p className="text-[10px] text-[#358a74] font-black uppercase tracking-widest">Record Management</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => { setSelectedComponent("AllUsers"); navigateTo('/'); }}
+                  className="bg-[#358a74] text-white px-8 py-3.5 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-900 transition-all shadow-lg shadow-emerald-200"
+                >
+                  {currentConfig.actionText}
+                </button>
+              </div>
+            ) : (
+              <div className={`p-8 rounded-[2.5rem] flex justify-between items-center shadow-sm border transition-all duration-500
+                ${user?.fines > 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
+                <div className="flex items-center gap-5">
+                  <div className={`p-4 rounded-2xl shadow-sm bg-white ${user?.fines > 0 ? "text-amber-600 border-amber-50" : "text-[#358a74] border-emerald-50"} border`}>
+                    <FaMoneyBillWave size={24} />
+                  </div>
+                  <div>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg italic">Library Wallet</h4>
+                    <p className={`text-[10px] font-black uppercase tracking-widest ${user?.fines > 0 ? "text-amber-600" : "text-[#358a74]"}`}>
+                      {user?.fines > 0 ? "Pending Dues Found" : "Account Clear"}
+                    </p>
+                  </div>
+                </div>
+                <div className={`text-3xl font-black italic tracking-tighter tabular-nums ${user?.fines > 0 ? "text-amber-600" : "text-[#358a74]"}`}>
+                  ${user?.fines ? Number(user.fines).toFixed(2) : "0.00"}
                 </div>
               </div>
-              <button
-                onClick={() => dispatch(toggleAddNewAdminPopup())}
-                className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200"
-              >
-                Launch Tools
-              </button>
-            </div>
-          ) : user?.role === "Admin" ? (
-            /* Admin  */
-            <div className="bg-emerald-50 border border-emerald-100 p-6 rounded-3xl flex flex-col sm:flex-row justify-between items-center gap-4 shadow-sm">
-              <div className="flex items-center gap-4">
-                <div className="p-4 bg-white text-[#358a74] rounded-2xl shadow-sm">
-                  <FaUsers size={22} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-800">Users Directory</h4>
-                  <p className="text-xs text-[#358a74] font-medium tracking-wide uppercase">Member Records Access</p>
-                </div>
-              </div>
-              <button
-                onClick={() => { setSelectedComponent("AllUsers"); navigateTo('/'); }}
-                className="bg-[#358a74] text-white px-6 py-2.5 rounded-xl text-xs font-bold hover:bg-[#2c7360] transition-colors shadow-lg shadow-emerald-200"
-              >
-                Manage Users
-              </button>
-            </div>
-          ) : (
-            /* User  */
-            <div className={`p-6 rounded-3xl flex justify-between items-center shadow-sm border transition-colors duration-500
-              ${user?.fines > 0 ? "bg-amber-50 border-amber-100" : "bg-emerald-50 border-emerald-100"}`}>
-              <div className="flex items-center gap-4">
-                <div className={`p-4 rounded-2xl shadow-sm bg-white ${user?.fines > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                  <FaMoneyBillWave size={22} />
-                </div>
-                <div>
-                  <h4 className="font-bold text-gray-800 tracking-tight">Library Wallet</h4>
-                  <p className={`text-xs font-bold uppercase ${user?.fines > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                    {user?.fines > 0 ? "Outstanding balance detected" : "No pending liabilities"}
-                  </p>
-                </div>
-              </div>
-              <div className={`text-2xl font-black tabular-nums ${user?.fines > 0 ? "text-amber-600" : "text-emerald-600"}`}>
-                ${user?.fines ? Number(user.fines).toFixed(2) : "0.00"}
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
         </div>
       </div>
 
-      {/* Add New Admin Popup */}
+      {/* Popup */}
       {AddNewAdminPopup && <AddNewAdmin />}
     </div>
   );
