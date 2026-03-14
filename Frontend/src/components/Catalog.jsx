@@ -1,141 +1,130 @@
 import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { fetchAllBooks, resetBookSlice } from "../store/slices/bookSlice";
-import { toggleReadBookPopup } from "../store/slices/popUpSlice";
+import { fetchAllBooks, deleteBook } from "../store/slices/bookSlice";
+import { toggleReadBookPopup, toggleAddBookPopup } from "../store/slices/popUpSlice";
+import { FaBook, FaFilter, FaChevronDown, FaUserShield, FaBookOpen, FaTrash, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
-import { FaBook, FaBookOpen, FaFilter } from "react-icons/fa";
 import ReadBookPopup from "../popups/ReadBookPopup";
+import AddBookPopup from "../popups/AddBookPopup";
+import BookCard from "./BookCard";
+
+const ExecutiveBtn = ({ icon, color, onClick }) => (
+  <button 
+    onClick={(e) => { e.stopPropagation(); onClick(); }}
+    className={`w-10 h-10 flex items-center justify-center rounded-xl bg-white border border-slate-100 transition-all hover:shadow-md hover:-translate-y-0.5 active:scale-90 ${color}`}
+  >
+    {React.cloneElement(icon, { size: 12 })}
+  </button>
+);
 
 const Catalog = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
-  const { books, loading, error } = useSelector((state) => state.book);
-  const { readBookPopup } = useSelector((state) => state.popup);
+  const { books, loading } = useSelector((state) => state.book);
+  const { readBookPopup, addBookPopup } = useSelector((state) => state.popup);
+  const { user } = useSelector((state) => state.auth);
 
   const [selectedGenre, setSelectedGenre] = useState("All");
   const [selectedBook, setSelectedBook] = useState(null);
+  const [editBook, setEditBook] = useState(null);
 
-  useEffect(() => {
-    dispatch(fetchAllBooks());
-  }, [dispatch]);
+  useEffect(() => { dispatch(fetchAllBooks()); }, [dispatch]);
 
-  useEffect(() => {
-    if (error) {
-      toast.error(error);
-      dispatch(resetBookSlice());
-    }
-  }, [error, dispatch]);
-
+  const isAdmin = user?.role === "Admin" || user?.role === "Super Admin";
   const genres = ["All", ...new Set(books.map((b) => b.genre).filter(Boolean))];
 
   const filteredBooks = books.filter((book) => {
-    const matchesSearch =
-      book.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      book.author?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = book.title?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGenre = selectedGenre === "All" || book.genre === selectedGenre;
     return matchesSearch && matchesGenre;
   });
 
-  const handleViewBook = (book) => {
-    setSelectedBook(book);
-    dispatch(toggleReadBookPopup());
+  const handleDeleteConfirm = (id, title) => {
+    toast(({ closeToast }) => (
+      <div className="flex flex-col items-center text-center w-full ltr p-2">
+        <div className="relative mb-4">
+          <div className="w-12 h-12 bg-white rounded-2xl flex items-center justify-center border border-slate-100 shadow-sm"><FaBookOpen className="text-[#358a74]" size={20} /></div>
+          <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-rose-50 rounded-full flex items-center justify-center border border-white"><FaTrash className="text-rose-500" size={8} /></div>
+        </div>
+        <div className="mb-5">
+          <h4 className="text-[8px] font-black uppercase tracking-[0.4em] text-slate-300">Sci Library</h4>
+          <p className="text-sm font-bold text-[#358a74]">Remove Asset?</p>
+          <p className="text-[9px] text-slate-400 mt-1 truncate max-w-[150px]">"{title}"</p>
+        </div>
+        <div className="flex flex-col w-full gap-2">
+          <button onClick={() => { dispatch(deleteBook(id)); closeToast(); }} className="w-full bg-[#358a74] text-white py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest shadow-lg hover:bg-rose-600 transition-all">Confirm</button>
+          <button onClick={closeToast} className="w-full bg-white text-slate-400 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest border border-slate-100">Cancel</button>
+        </div>
+      </div>
+    ), { position: "top-center", autoClose: false, closeOnClick: false, className: "!rounded-[2rem] !shadow-2xl !max-w-[260px] !mx-auto border border-slate-50", icon: false, closeButton: false });
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <FaBook className="text-[#358a74]" /> Book Catalog
+    <div className="space-y-10 p-4 md:p-8">
+      {/* Filters */}
+      <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-50 flex flex-col md:flex-row justify-between items-center gap-6">
+        <h2 className="text-3xl font-black text-slate-800 tracking-tighter flex items-center gap-3">
+          <div className="p-3 bg-emerald-50 rounded-xl text-[#358a74]"><FaBook size={24} /></div>
+          {isAdmin ? "Assets Management" : "Library Catalog"}
         </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          Browse all available books in the library.
-        </p>
+     <div className="relative inline-block">
+ <div className="relative inline-block">
+  <select 
+    value={selectedGenre} 
+    onChange={(e) => setSelectedGenre(e.target.value)} 
+    className="appearance-none bg-white text-[11px] font-bold uppercase tracking-wider px-10 py-3.5 rounded-xl border border-slate-200 text-slate-700 shadow-sm hover:border-blue-400 hover:shadow-md transition-all duration-300 outline-none cursor-pointer"
+  >
+    <option value="" disabled className="text-slate-400">Select Genre</option>
+    
+    {genres.map(g => (
+      <option 
+        key={g} 
+        value={g} 
+        className="bg-white text-slate-700 py-2 font-sans capitalize"
+      >
+        {g}
+      </option>
+    ))}
+  </select>
+  
+  <div className="absolute inset-y-0 right-3 flex items-center px-2 pointer-events-none text-slate-400">
+    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+    </svg>
+  </div>
+</div>
+</div>
       </div>
 
-      {/* Filter */}
-      <div className="flex flex-col sm:flex-row gap-4">
-        <div className="flex items-center gap-2">
-          <FaFilter className="text-gray-400" />
-          <select
-            value={selectedGenre}
-            onChange={(e) => setSelectedGenre(e.target.value)}
-            className="border border-gray-200 rounded-xl py-3 px-4 focus:outline-none focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] bg-white transition-all"
-          >
-            {genres.map((genre) => (
-              <option key={genre} value={genre}>
-                {genre}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-
-      {/* Results Count */}
-      <p className="text-sm text-gray-500">
-        {filteredBooks.length} {filteredBooks.length === 1 ? "book" : "books"} found
-      </p>
-
-      {/* Books Grid */}
-      {loading && !books.length ? (
-        <div className="text-center py-16 text-gray-400">Loading books...</div>
-      ) : filteredBooks.length === 0 ? (
-        <div className="text-center py-16 text-gray-400">
-          {searchTerm || selectedGenre !== "All"
-            ? "No books match your filters."
-            : "No books in the catalog yet."}
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {filteredBooks.map((book) => (
-            <div
-              key={book.id}
-              className="bg-white p-4 rounded-3xl shadow-sm border border-gray-100 flex flex-col hover:shadow-xl transition-all duration-300 group"
-            >
-              <div className="w-full h-52 bg-gray-100 rounded-2xl mb-4 overflow-hidden flex items-center justify-center relative">
-                <span className="absolute top-3 left-3 bg-black/30 backdrop-blur-sm text-white text-xs px-3 py-1 rounded-full font-semibold">
-                  {book.genre}
-                </span>
-                <span
-                  className={`absolute top-3 right-3 text-xs px-3 py-1 rounded-full font-bold ${
-                    book.status === "Available"
-                      ? "bg-green-100 text-green-700"
-                      : "bg-amber-100 text-amber-700"
-                  }`}
-                >
+      {/* Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        {filteredBooks.map((book) => (
+          isAdmin ? (
+            <div key={book._id} className="bg-white p-6 rounded-[3rem] shadow-sm border border-slate-50 flex flex-col items-center group relative hover:shadow-xl transition-all">
+              <div className="absolute top-6 right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                <ExecutiveBtn icon={<FaEdit />} color="hover:text-emerald-500" onClick={() => { setEditBook(book); dispatch(toggleAddBookPopup()); }} />
+                <ExecutiveBtn icon={<FaTrash />} color="hover:text-rose-500" onClick={() => handleDeleteConfirm(book._id, book.title)} />
+              </div>
+              <div className="w-full h-56 bg-slate-50 rounded-[2rem] mb-4 overflow-hidden shadow-inner">
+                {book.image?.url ? <img src={book.image.url} className="w-full h-full object-cover" /> : <FaBookOpen size={40} className="text-slate-100 m-auto h-full" />}
+              </div>
+              <div className="mb-4 w-full text-center">
+                <h3 className="font-black text-slate-800 text-sm ">{book.title}</h3>
+                <div className={`mt-2 inline-block px-3 py-1 rounded-full text-[8px] font-black uppercase ${book.status === 'Available' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-500'}`}>
                   {book.status}
-                </span>
-                {book.image?.url ? (
-                  <img
-                    src={book.image.url}
-                    alt={book.title}
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                  />
-                ) : (
-                  <FaBook size={36} className="text-gray-300" />
-                )}
+                </div>
               </div>
-
-              <div className="flex flex-col flex-grow text-left px-1">
-                <h3 className="font-extrabold text-gray-900 text-sm mb-1 h-10 overflow-hidden line-clamp-2 leading-snug">
-                  {book.title}
-                </h3>
-                <p className="text-xs text-gray-500 mb-1">{book.author}</p>
-                <p className="text-xs text-gray-400 mb-3">Edition: {book.edition}</p>
-              </div>
-
-              <button
-                onClick={() => handleViewBook(book)}
-                className="w-full flex items-center justify-center gap-2 text-sm bg-gray-100 text-gray-700 py-2.5 rounded-2xl font-bold hover:bg-[#358a74] hover:text-white transition-all mt-auto active:scale-95"
-              >
-                <FaBookOpen /> View Details
+              <button onClick={() => { setSelectedBook(book); dispatch(toggleReadBookPopup()); }} className="w-full py-3 rounded-2xl bg-slate-900 text-white font-black text-[9px] uppercase tracking-widest hover:bg-[#358a74] transition-all">
+                <FaUserShield className="inline mr-2" /> View Details
               </button>
             </div>
-          ))}
-        </div>
-      )}
+          ) : (
+            <BookCard key={book._id} {...book} />
+          )
+        ))}
+      </div>
 
-      {/* Read Popup */}
-      {readBookPopup && selectedBook && <ReadBookPopup book={selectedBook} />}
+      {readBookPopup && selectedBook && <ReadBookPopup book={selectedBook} setEditBook={setEditBook} />}
+      {addBookPopup && <AddBookPopup editBook={editBook} />}
     </div>
   );
 };

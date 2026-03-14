@@ -16,18 +16,12 @@ const DashboardLayout = () => {
   return (
     /* Main wrapper */
     <div className="flex h-screen overflow-hidden bg-[#f4f7f6]">
-      
 
       <Sidebar />
 
       <div className="flex flex-col flex-1 overflow-hidden relative">
         
-        {/* 2. Header}
-        <Header />
-
-        {/* 3. Main Content: 
-            - Blurred and non-interactive if not authenticated
-        */}
+       
         <main className={`flex-1 overflow-y-auto p-6 mt-16 transition-all duration-500 ${!isAuthenticated ? "blur-[2px] pointer-events-none opacity-80" : ""}`}>
           <Outlet />
         </main>

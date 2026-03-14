@@ -65,11 +65,24 @@ const bookSlice = createSlice({
     },
     deleteBookSuccess(state, action) {
       state.loading = false;
-      state.message = action.payload;
+      state.message = action.payload.message;
+      state.books = state.books.filter(
+        (book) => book._id !== action.payload.id
+      );
     },
     deleteBookFailed(state, action) {
       state.loading = false;
       state.error = action.payload;
+    },
+
+    updateBookStatus(state, action) {
+      const { id, newStatus } = action.payload;
+      const bookIndex = state.books.findIndex(
+        (b) => b._id === id || b.id === id
+      );
+      if (bookIndex !== -1) {
+        state.books[bookIndex].status = newStatus;
+      }
     },
 
     resetBookSlice(state) {
@@ -100,9 +113,10 @@ export const addBook = (formData) => (dispatch) => {
     .post("/api/v1/book/add", formData, {
       headers: { "Content-Type": undefined },
     })
-    .then((res) =>
-      dispatch(bookSlice.actions.addBookSuccess(res.data.message))
-    )
+    .then((res) => {
+      dispatch(bookSlice.actions.addBookSuccess(res.data.message));
+      dispatch(fetchAllBooks()); 
+    })
     .catch((error) =>
       dispatch(bookSlice.actions.addBookFailed(getErrorMsg(error)))
     );
@@ -114,9 +128,10 @@ export const updateBook = (id, formData) => (dispatch) => {
     .put(`/api/v1/book/update/${id}`, formData, {
       headers: { "Content-Type": undefined },
     })
-    .then((res) =>
-      dispatch(bookSlice.actions.updateBookSuccess(res.data.message))
-    )
+    .then((res) => {
+      dispatch(bookSlice.actions.updateBookSuccess(res.data.message));
+      dispatch(fetchAllBooks()); 
+    })
     .catch((error) =>
       dispatch(bookSlice.actions.updateBookFailed(getErrorMsg(error)))
     );
@@ -127,12 +142,14 @@ export const deleteBook = (id) => (dispatch) => {
   api
     .delete(`/api/v1/book/delete/${id}`)
     .then((res) =>
-      dispatch(bookSlice.actions.deleteBookSuccess(res.data.message))
+      dispatch(bookSlice.actions.deleteBookSuccess({ message: res.data.message, id }))
     )
     .catch((error) =>
       dispatch(bookSlice.actions.deleteBookFailed(getErrorMsg(error)))
     );
 };
+
+export const { updateBookStatus } = bookSlice.actions;
 
 export const resetBookSlice = () => (dispatch) => {
   dispatch(bookSlice.actions.resetBookSlice());

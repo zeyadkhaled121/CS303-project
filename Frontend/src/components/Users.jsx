@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchAllUsers,
@@ -8,14 +8,9 @@ import {
   resetUserSlice,
 } from "../store/slices/userSlice";
 import { toast } from "react-toastify";
-import {
-  FaUsers,
-  FaArrowUp,
-  FaArrowDown,
-  FaTrash,
-  FaShieldAlt,
-  FaUser,
-  FaUserShield,
+import { 
+  FaArrowUp, FaArrowDown, FaTrash, 
+  FaUserShield, FaCircle, FaFingerprint 
 } from "react-icons/fa";
 
 const Users = ({ searchTerm = "" }) => {
@@ -41,184 +36,119 @@ const Users = ({ searchTerm = "" }) => {
     }
   }, [error, message, dispatch]);
 
-  const handlePromote = (userId, name) => {
-    if (window.confirm(`Promote "${name}" to Admin?`)) {
-      dispatch(promoteUser(userId));
-    }
-  };
-
-  const handleDemote = (userId, name) => {
-    if (window.confirm(`Demote "${name}" to User?`)) {
-      dispatch(demoteUser(userId));
-    }
-  };
-
-  const handleDelete = (userId, name) => {
-    if (window.confirm(`Are you sure you want to delete "${name}"'s account? This cannot be undone.`)) {
-      dispatch(deleteUser(userId));
+  const handleAction = (action, userId, name) => {
+    if (window.confirm(`Are you sure you want to perform this action on ${name}?`)) {
+      dispatch(action(userId));
     }
   };
 
   const filteredUsers = users.filter(
     (u) =>
       u.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      u.role?.toLowerCase().includes(searchTerm.toLowerCase())
+      u.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getRoleIcon = (role) => {
-    switch (role) {
-      case "Super Admin":
-        return <FaUserShield className="text-purple-500" />;
-      case "Admin":
-        return <FaShieldAlt className="text-[#358a74]" />;
-      default:
-        return <FaUser className="text-gray-400" />;
-    }
-  };
-
-  const getRoleBadgeClass = (role) => {
-    switch (role) {
-      case "Super Admin":
-        return "bg-purple-50 text-purple-600";
-      case "Admin":
-        return "bg-emerald-50 text-[#358a74]";
-      default:
-        return "bg-gray-100 text-gray-600";
-    }
-  };
-
   return (
-    <div className="space-y-6 animate-fadeIn">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+    <div className="max-w-6xl mx-auto p-6 md:p-12 animate-fadeIn min-h-screen bg-white">
+      
+      {/* --- Elegant Minimalist Header --- */}
+      <div className="flex flex-col md:flex-row justify-between items-end mb-16 gap-4 border-b border-slate-100 pb-10">
         <div>
-          <h2 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-            <FaUsers className="text-[#358a74]" />
-            Users Management
+          <h2 className="text-3xl font-black text-gray-800 tracking-tighter uppercase ">
+            Member <span className="text-[#358a74] not-">Base</span>
           </h2>
-          <p className="text-sm text-gray-500 mt-1">
-            {isSuperAdmin
-              ? "View and manage all system users and admins."
-              : "View registered users in the system."}
-          </p>
-        </div>
-      </div>
-
-      {/* Stats */}
-      <div className={`grid grid-cols-1 ${isSuperAdmin ? "sm:grid-cols-3" : "sm:grid-cols-2"} gap-4`}>
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">
-            {isSuperAdmin ? "Total Users" : "Total Registered Users"}
-          </p>
-          <p className="text-3xl font-black text-gray-900 mt-1">{users.length}</p>
-        </div>
-        {isSuperAdmin && (
-          <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Admins</p>
-            <p className="text-3xl font-black text-[#358a74] mt-1">
-              {users.filter((u) => u.role === "Admin").length}
-            </p>
+          <div className="flex items-center gap-2 mt-2">
           </div>
-        )}
-        <div className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-          <p className="text-xs font-bold text-gray-400 uppercase tracking-wider">Regular Users</p>
-          <p className="text-3xl font-black text-gray-900 mt-1">
-            {users.filter((u) => u.role === "User").length}
-          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-[2rem] font-black text-slate-1 leading-none select-none">#{users.length}</p>
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50 text-gray-600 uppercase text-[11px] font-bold tracking-wider">
-              <tr>
-                <th className="px-6 py-4">User</th>
-                <th className="px-6 py-4">Email</th>
-                <th className="px-6 py-4">Role</th>
-                {isSuperAdmin && <th className="px-6 py-4 text-center">Actions</th>}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {loading && !users.length ? (
-                <tr>
-                  <td colSpan={isSuperAdmin ? 4 : 3} className="px-6 py-12 text-center text-gray-400">
-                    Loading users...
-                  </td>
-                </tr>
-              ) : filteredUsers.length === 0 ? (
-                <tr>
-                  <td colSpan={isSuperAdmin ? 4 : 3} className="px-6 py-12 text-center text-gray-400">
-                    {searchTerm ? "No users match your search." : "No users found."}
-                  </td>
-                </tr>
-              ) : (
-                filteredUsers.map((u) => (
-                  <tr key={u.id} className="hover:bg-gray-50/50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-[#358a74] text-white flex items-center justify-center font-bold text-sm flex-shrink-0">
-                          {u.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <span className="font-semibold text-gray-800 text-sm">{u.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-600">{u.email}</td>
-                    <td className="px-6 py-4">
-                      <span
-                        className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${getRoleBadgeClass(
-                          u.role
-                        )}`}
+      {/* --- The Smart List System --- */}
+      <div className="space-y-2">
+        {loading && !users.length ? (
+          <div className="py-20 text-center font-black text-slate-200 text-2xl  animate-pulse tracking-widest uppercase">Syncing Database...</div>
+        ) : (
+          filteredUsers.map((u) => (
+            <div 
+              key={u.id} 
+              className="group flex flex-col md:flex-row items-center justify-between p-6 rounded-[1.5rem] transition-all duration-500 hover:bg-[#358a74]/[0.03] border border-transparent hover:border-emerald-50"
+            >
+              {/* User Main Identity */}
+              <div className="flex items-center gap-6 flex-1 w-full md:w-auto">
+                <div className="relative">
+                  <div className="w-14 h-14 rounded-2xl bg-slate-50 border border-slate-100 flex items-center justify-center text-[#358a74] font-black text-xl group-hover:scale-110 transition-transform duration-500">
+                    {u.name?.charAt(0).toUpperCase()}
+                  </div>
+                  <FaCircle className={`absolute -top-1 -right-1 text-[10px] ${u.role !== 'User' ? 'text-[#358a74]' : 'text-slate-200'} border-2 border-white rounded-full`} />
+                </div>
+                
+                <div className="flex-1">
+                  <h4 className="font-black text-slate-800 text-lg tracking-tight group-hover:text-[#358a74] transition-colors uppercase">
+                    {u.name}
+                  </h4>
+                  <div className="flex items-center gap-2">
+                    <FaFingerprint className="text-slate-300" size={10} />
+                    <p className="text-slate-400 text-xs font-medium tracking-tight">{u.email}</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Role & Actions Container */}
+              <div className="flex items-center justify-between md:justify-end gap-10 w-full md:w-auto mt-6 md:mt-0">
+                
+                {/* Minimalist Role Badge */}
+                <div className="text-right">
+                   <p className="text-[9px] font-black text-slate-300 uppercase tracking-widest mb-1">Authorization</p>
+                   <p className={`text-xs font-black uppercase ${u.role !== 'User' ? 'text-[#358a74]' : 'text-slate-500'}`}>
+                      {u.role}
+                   </p>
+                </div>
+
+                {/* Cyber Action Buttons */}
+                <div className="flex items-center gap-1">
+                  {isSuperAdmin && u.role !== "Super Admin" ? (
+                    <>
+                      <button 
+                        onClick={() => handleAction(u.role === "User" ? promoteUser : demoteUser, u.id, u.name)}
+                        className={`w-11 h-11 flex items-center justify-center rounded-xl transition-all border ${
+                          u.role === "User" 
+                          ? "bg-white border-slate-100 text-[#358a74] hover:bg-[#358a74] hover:text-white" 
+                          : "bg-white border-slate-100 text-amber-500 hover:bg-amber-500 hover:text-white"
+                        }`}
+                        title={u.role === "User" ? "Promote to Admin" : "Demote to User"}
                       >
-                        {getRoleIcon(u.role)}
-                        {u.role}
-                      </span>
-                    </td>
-                    {isSuperAdmin && (
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-center gap-2">
-                          {u.role === "Super Admin" ? (
-                            <span className="text-xs text-gray-400 italic">Protected</span>
-                          ) : (
-                            <>
-                              {u.role === "User" && (
-                                <button
-                                  onClick={() => handlePromote(u.id, u.name)}
-                                  className="p-2 rounded-lg hover:bg-emerald-50 text-gray-400 hover:text-[#358a74] transition-colors"
-                                  title="Promote to Admin"
-                                >
-                                  <FaArrowUp size={14} />
-                                </button>
-                              )}
-                              {u.role === "Admin" && (
-                                <button
-                                  onClick={() => handleDemote(u.id, u.name)}
-                                  className="p-2 rounded-lg hover:bg-amber-50 text-gray-400 hover:text-amber-500 transition-colors"
-                                  title="Demote to User"
-                                >
-                                  <FaArrowDown size={14} />
-                                </button>
-                              )}
-                              <button
-                                onClick={() => handleDelete(u.id, u.name)}
-                                className="p-2 rounded-lg hover:bg-red-50 text-gray-400 hover:text-red-500 transition-colors"
-                                title="Delete User"
-                              >
-                                <FaTrash size={14} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+                        {u.role === "User" ? <FaArrowUp size={14} /> : <FaArrowDown size={14} />}
+                      </button>
+                      
+                      <button 
+                        onClick={() => handleAction(deleteUser, u.id, u.name)}
+                        className="w-11 h-11 flex items-center justify-center rounded-xl bg-white border border-slate-100 text-rose-400 hover:bg-rose-500 hover:text-white transition-all"
+                        title="Permanently Delete"
+                      >
+                        <FaTrash size={14} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="w-11 h-11 flex items-center justify-center text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity">
+                       <FaUserShield size={18} />
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* --- Footer Status Line --- */}
+      <div className="mt-24 pt-8 border-t border-slate-50 flex flex-col md:flex-row justify-between items-center gap-4 text-[9px] font-black text-slate-300 tracking-[0.4em] uppercase">
+         <span>Secured Library Infrastructure</span>
+         <span className="flex items-center gap-2">
+           <span className="w-1 h-1 bg-[#358a74] rounded-full"></span>
+           Live Feed Active
+         </span>
       </div>
     </div>
   );
