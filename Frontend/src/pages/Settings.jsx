@@ -113,7 +113,7 @@ const Settings = ({ setSelectedComponent }) => {
             <div className="w-full border-t border-slate-50 mt-8 pt-8 space-y-4">
               <div className="flex items-center justify-center gap-3 text-sm text-slate-600 font-bold">
                 <FaEnvelope className="text-[#358a74] flex-shrink-0 opacity-60" />
-                <span className="truncate max-w-[150px] italic lowercase">{user?.email}</span>
+                <span className="truncate max-w-[150px]  lowercase">{user?.email}</span>
               </div>
             </div>
           </div>
@@ -224,13 +224,13 @@ const Settings = ({ setSelectedComponent }) => {
                     <FaMoneyBillWave size={24} />
                   </div>
                   <div>
-                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg italic">Library Wallet</h4>
+                    <h4 className="font-black text-slate-800 uppercase tracking-tight text-lg ">Library Wallet</h4>
                     <p className={`text-[10px] font-black uppercase tracking-widest ${user?.fines > 0 ? "text-amber-600" : "text-[#358a74]"}`}>
                       {user?.fines > 0 ? "Pending Dues Found" : "Account Clear"}
                     </p>
                   </div>
                 </div>
-                <div className={`text-3xl font-black italic tracking-tighter tabular-nums ${user?.fines > 0 ? "text-amber-600" : "text-[#358a74]"}`}>
+                <div className={`text-3xl font-black  tracking-tighter tabular-nums ${user?.fines > 0 ? "text-amber-600" : "text-[#358a74]"}`}>
                   ${user?.fines ? Number(user.fines).toFixed(2) : "0.00"}
                 </div>
               </div>
