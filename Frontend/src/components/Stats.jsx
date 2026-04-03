@@ -1,5 +1,6 @@
-import React from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { getBorrowStats } from "../store/slices/borrowSlice";
 // Chart components for visual representation
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
@@ -8,23 +9,51 @@ import {
 // UI Icons
 import { 
   FaBook, FaUsers, FaHandHolding, FaChartLine, 
-  FaHistory, FaArrowUp, FaStar 
+  FaHistory, FaStar 
 } from "react-icons/fa";
 
 const Stats = ({ setSelectedComponent }) => {
-  // Fetching real data from Redux store
+  const dispatch = useDispatch();
   const { books } = useSelector((state) => state.book);
-  const { allBorrowedBooks } = useSelector((state) => state.borrow);
   const { allUsers } = useSelector((state) => state.auth);
+  const [stats, setStats] = useState({
+    totalPending: 0,
+    totalBorrowed: 0,
+    totalOverdue: 0,
+    totalReturned: 0,
+    totalBooks: 0,
+    totalUsers: 0,
+  });
+
+  // Fetch statistics from backend
+  useEffect(() => {
+    const fetchStats = async () => {
+      try {
+        const result = await dispatch(getBorrowStats());
+        if (result?.ok && result?.data) {
+          setStats(result.data);
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+        // Continue with Redux data as fallback
+      }
+    };
+
+    fetchStats();
+  }, [dispatch]);
 
   // 1. Core Calculations for Info Cards
-  const totalBooks = books?.length || 0;
-  // Active loans are records where the book hasn't been returned yet
-  const activeLoans = allBorrowedBooks?.filter(l => !l.returned).length || 0;
-  // Calculate what percentage of the library is currently out on loan
-  const loanRate = totalBooks > 0 ? ((activeLoans / totalBooks) * 100).toFixed(1) : 0;
-  const totalUsers = allUsers?.length || 0;
-  const returnedTotal = allBorrowedBooks?.filter(l => l.returned).length || 0;
+  // Calculate total physical copies if redux state has the books array, otherwise fallback to the unique book count
+  const totalPhysicalCopies = books?.length > 0 
+    ? books.reduce((sum, book) => sum + (Number(book.totalCopies) || 1), 0) 
+    : stats.totalBooks || 0;
+
+  const totalBooks = stats.totalBooks || books?.length || 0;
+  const activeLoans = stats.totalBorrowed || 0;
+  // Loan rate reflects the percentage of physical copies currently checked out
+  const loanRate = totalPhysicalCopies > 0 ? ((activeLoans / totalPhysicalCopies) * 100).toFixed(1) : 0;
+  const totalUsers = stats.totalUsers || allUsers?.length || 0;
+  const returnedTotal = stats.totalReturned || 0;
 
   // 2. Dynamic Genre Analysis for the Bar Chart
   const getGenreData = () => {
@@ -40,7 +69,7 @@ const Stats = ({ setSelectedComponent }) => {
   // 3. Loan Status Data for the Pie Chart
   const loanStatusData = [
     { name: "Borrowed", value: activeLoans },
-    { name: "Available", value: Math.max(0, totalBooks - activeLoans) },
+    { name: "Available", value: Math.max(0, totalPhysicalCopies - activeLoans) },
   ];
 
   // Professional color palette: [Primary Emerald, Light Gray]
@@ -85,9 +114,6 @@ const Stats = ({ setSelectedComponent }) => {
             <div className="flex justify-between items-start mb-4">
                 <div className={`${item.bg} ${item.color} p-4 rounded-2xl group-hover:scale-110 transition-transform`}>
                     {item.icon}
-                </div>
-                <div className="flex items-center gap-1 text-emerald-500 font-bold text-xs">
-                    <FaArrowUp size={10} /> {Math.floor(Math.random() * 15)}%
                 </div>
             </div>
             <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">{item.label}</p>
@@ -162,7 +188,7 @@ const Stats = ({ setSelectedComponent }) => {
                 </div>
                 <div className="flex justify-between items-center text-xs font-bold">
                     <div className="flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-gray-200"></span> Available</div>
-                    <span className="text-gray-400">{Math.max(0, totalBooks - activeLoans)} Books</span>
+                    <span className="text-gray-400">{Math.max(0, totalPhysicalCopies - activeLoans)} Books</span>
                 </div>
             </div>
         </div>

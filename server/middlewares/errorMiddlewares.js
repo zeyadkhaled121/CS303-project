@@ -35,11 +35,13 @@ export const errorMiddleware = (err, req, res, next) => {
         .join(" ")
     : err.message;
 
+  const isDevelopment = process.env.NODE_ENV === "development";
+
   return res.status(err.statusCode).json({
     success: false,
     message: errorMessage,
     data: null,
-    error: process.env.NODE_ENV === "development" ? err.stack : errorMessage,
+    error: isDevelopment ? errorMessage : null,
   });
 };
 

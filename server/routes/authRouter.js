@@ -14,15 +14,16 @@ import {
     deleteUser,
 } from "../controllers/authController.js";
 import { isAuthenticatedUser, authorizeRoles } from "../middlewares/auth.js";
+import rateLimiter from "../middlewares/rateLimiter.js";
 
 const router = express.Router();
 
 // ── Public routes ──
-router.post("/register", register);
-router.post("/verify-email", verifyEmail);
-router.post("/login", loginUser);
-router.post("/password/forgot", forgotPassword);
-router.put("/password/reset", resetPassword);
+router.post("/register", rateLimiter, register);
+router.post("/verify-email", rateLimiter, verifyEmail);
+router.post("/login", rateLimiter, loginUser);
+router.post("/password/forgot", rateLimiter, forgotPassword);
+router.put("/password/reset", rateLimiter, resetPassword);
 
 //  Authenticated (any role) 
 router.put("/password/update", isAuthenticatedUser, updatePassword);

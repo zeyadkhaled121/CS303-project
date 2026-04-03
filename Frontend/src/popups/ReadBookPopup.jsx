@@ -11,9 +11,6 @@ const ReadBookPopup = ({ book, setEditBook }) => {
   
   const { loading: borrowLoading, message, error } = useSelector((state) => state.borrow || {});
   const { user } = useSelector((state) => state.auth || {});
-
-  if (!book) return null;
-
   const isAdmin = user?.role === "Admin" || user?.role === "Super Admin";
 
   useEffect(() => {
@@ -28,6 +25,8 @@ const ReadBookPopup = ({ book, setEditBook }) => {
     }
   }, [error, message, dispatch]);
 
+  if (!book) return null;
+
  
   const handleDeleteAction = () => {
     if (window.confirm(`Are you sure you want to delete "${book.title}"?`)) {
@@ -38,6 +37,12 @@ const ReadBookPopup = ({ book, setEditBook }) => {
 
  
   const handleEditAction = () => {
+    // Only allow editing if all copies are available
+    if (book.availableCopies !== book.totalCopies) {
+      toast.error("Cannot edit a book while copies are currently borrowed or active.");
+      return;
+    }
+    
     dispatch(toggleReadBookPopup());
     if (setEditBook) {
       setEditBook(book);

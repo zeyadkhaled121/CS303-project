@@ -28,11 +28,40 @@ export default [
       ...react.configs.recommended.rules,
       ...react.configs['jsx-runtime'].rules,
       ...reactHooks.configs.recommended.rules,
+      'no-unused-vars': ['warn', {
+        varsIgnorePattern: '^React$',
+        argsIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      }],
+      'react/prop-types': 'off',
+      'react/no-unescaped-entities': 'off',
       'react/jsx-no-target-blank': 'off',
       'react-refresh/only-export-components': [
         'warn',
         { allowConstantExport: true },
       ],
+    },
+  },
+  {
+    files: ['**/__tests__/**/*.js', '**/*.test.js', '**/*.spec.js'],
+    languageOptions: {
+      globals: {
+        ...globals.browser,
+        describe: 'readonly',
+        it: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        before: 'readonly',
+        after: 'readonly',
+        vi: 'readonly',
+      },
+    },
+    rules: {
+      'no-unused-vars': ['warn', {
+        varsIgnorePattern: '^_|^(steps|payloads|cases|timeline|clickSequence|scenarios)',
+        argsIgnorePattern: '^_|^(s|c|p|t|e)',
+      }],
     },
   },
 ]

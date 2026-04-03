@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchAllBooks, deleteBook } from "../store/slices/bookSlice";
 import { toggleReadBookPopup, toggleAddBookPopup } from "../store/slices/popUpSlice";
-import { FaBook, FaFilter, FaChevronDown, FaUserShield, FaBookOpen, FaTrash, FaEdit } from "react-icons/fa";
+import { FaBook, FaUserShield, FaBookOpen, FaTrash, FaEdit } from "react-icons/fa";
 import { toast } from "react-toastify";
 import ReadBookPopup from "../popups/ReadBookPopup";
 import AddBookPopup from "../popups/AddBookPopup";
@@ -19,7 +19,7 @@ const ExecutiveBtn = ({ icon, color, onClick }) => (
 
 const Catalog = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
-  const { books, loading } = useSelector((state) => state.book);
+  const { books } = useSelector((state) => state.book);
   const { readBookPopup, addBookPopup } = useSelector((state) => state.popup);
   const { user } = useSelector((state) => state.auth);
 
@@ -101,7 +101,18 @@ const Catalog = ({ searchTerm = "" }) => {
           isAdmin ? (
             <div key={book._id} className="bg-white p-6 rounded-[3rem] shadow-sm border border-slate-50 flex flex-col items-center group relative hover:shadow-xl transition-all">
               <div className="absolute top-6 right-6 flex flex-col gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                <ExecutiveBtn icon={<FaEdit />} color="hover:text-emerald-500" onClick={() => { setEditBook(book); dispatch(toggleAddBookPopup()); }} />
+                <ExecutiveBtn 
+                  icon={<FaEdit />} 
+                  color="hover:text-emerald-500" 
+                  onClick={() => { 
+                    if (book.availableCopies !== book.totalCopies) {
+                      toast.error("Cannot edit a book while copies are currently borrowed.");
+                      return;
+                    }
+                    setEditBook(book); 
+                    dispatch(toggleAddBookPopup()); 
+                  }} 
+                />
                 <ExecutiveBtn icon={<FaTrash />} color="hover:text-rose-500" onClick={() => handleDeleteConfirm(book._id, book.title)} />
               </div>
               <div className="w-full h-56 bg-slate-50 rounded-[2rem] mb-4 overflow-hidden shadow-inner">

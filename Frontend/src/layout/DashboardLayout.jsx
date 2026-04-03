@@ -2,7 +2,6 @@ import React from "react";
 import { useSelector } from "react-redux";
 import { Outlet, useLocation } from "react-router-dom";
 import Sidebar from "./SideBar";
-import Header from "./Header";
 import Login from "../pages/Login";
 import Register from "../pages/Register";
 

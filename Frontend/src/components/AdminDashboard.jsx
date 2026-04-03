@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { 
   FaPlus, FaTrash, FaEdit, FaEye, FaLayerGroup, 
-  FaShieldAlt, FaBookOpen, FaInbox, FaTerminal 
+  FaShieldAlt, FaBookOpen, FaInbox 
 } from "react-icons/fa";
 import { fetchAllBooks, deleteBook, resetBookSlice } from "../store/slices/bookSlice";
 import { toggleAddBookPopup, toggleReadBookPopup } from "../store/slices/popUpSlice";
@@ -142,7 +142,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
             <FaBookOpen className="text-[#358a74] text-xl group-hover:rotate-12 transition-transform" />
             <div>
               <p className="text-4xl font-black text-slate-900 tracking-tighter">
-                {books.filter(b => b.status === "Available").length}
+                {books.reduce((acc, book) => acc + (book.availableCopies || 0), 0)}
               </p>
               <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">In Stock</p>
             </div>
@@ -209,12 +209,12 @@ const AdminDashboard = ({ searchTerm = "" }) => {
                     </td>
                     <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 transition-all">
                       <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-widest border transition-all ${
-                        book.status === 'Available' 
-                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
+                        book.availableCopies > 0
+                        ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
                         : 'bg-amber-50 text-amber-600 border-amber-100'
                       }`}>
-                        <div className={`w-1.5 h-1.5 rounded-full ${book.status === 'Available' ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
-                        {book.status}
+                        <div className={`w-1.5 h-1.5 rounded-full ${book.availableCopies > 0 ? 'bg-emerald-500' : 'bg-amber-500'} animate-pulse`} />
+                        {book.availableCopies > 0 ? `${book.availableCopies}/${book.totalCopies} AVAILABLE` : 'BORROWED'}
                       </div>
                     </td>
                     <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 rounded-r-[2rem] transition-all">
@@ -224,10 +224,17 @@ const AdminDashboard = ({ searchTerm = "" }) => {
                           color="hover:text-blue-500 hover:bg-blue-50" 
                           onClick={() => { setSelectedBook(book); dispatch(toggleReadBookPopup()); }} 
                         />
-                        <ExecutiveBtn 
-                          icon={<FaEdit />} 
-                          color="hover:text-emerald-500 hover:bg-emerald-50" 
-                          onClick={() => { setEditBook(book); dispatch(toggleAddBookPopup()); }} 
+                        <ExecutiveBtn
+                          icon={<FaEdit />}
+                          color="hover:text-emerald-500 hover:bg-emerald-50"
+                          onClick={() => { 
+                            if (book.availableCopies !== book.totalCopies) {
+                                toast.error("Cannot edit a book while copies are currently borrowed.");
+                                return;
+                            }
+                            setEditBook(book); 
+                            dispatch(toggleAddBookPopup()); 
+                          }}
                         />
                         <ExecutiveBtn 
                           icon={<FaTrash />} 

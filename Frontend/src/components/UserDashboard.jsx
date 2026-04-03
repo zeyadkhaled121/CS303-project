@@ -1,18 +1,14 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FaBookOpen, FaBook, FaSearch } from "react-icons/fa";
+import { FaBook, FaSearch } from "react-icons/fa";
 import { fetchAllBooks, resetBookSlice } from "../store/slices/bookSlice";
-import { toggleReadBookPopup } from "../store/slices/popUpSlice";
 import { toast } from "react-toastify";
-import ReadBookPopup from "../popups/ReadBookPopup";
 import BookCard from "./BookCard";
 
 const UserDashboard = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { books, loading, error, message } = useSelector((state) => state.book);
-  const { readBookPopup } = useSelector((state) => state.popup);
-  const [selectedBook, setSelectedBook] = useState(null);
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -74,8 +70,6 @@ const UserDashboard = ({ searchTerm = "" }) => {
           </div>
         )}
       </section>
-
-      {readBookPopup && selectedBook && <ReadBookPopup book={selectedBook} />}
     </div>
   );
 };

@@ -19,12 +19,26 @@ const BookManagement = () => {
   const [showRecordPopup, setShowRecordPopup] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  const activeLoans = allBorrowedBooks.filter(loan => !loan.returned);
-  
-  const filteredLoans = activeLoans.filter(loan => 
-    loan.userId?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    loan.bookId?.title?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const isActiveLoan = (loan) => {
+    const status = typeof loan?.status === "string" ? loan.status.toLowerCase() : "";
+    if (status) {
+      return status === "borrowed" || status === "overdue";
+    }
+    return loan?.returned !== true;
+  };
+
+  const getBorrowerName = (loan) => loan?.user?.name || loan?.userId?.name || loan?.userName || "Unknown Member";
+  const getBookTitle = (loan) => loan?.book?.title || loan?.bookId?.title || loan?.bookTitle || "Untitled Book";
+
+  const activeLoans = (allBorrowedBooks || []).filter(isActiveLoan);
+
+  const normalizedSearch = searchTerm.trim().toLowerCase();
+  const filteredLoans = activeLoans.filter((loan) => {
+    if (!normalizedSearch) return true;
+    const borrowerName = getBorrowerName(loan).toLowerCase();
+    const bookTitle = getBookTitle(loan).toLowerCase();
+    return borrowerName.includes(normalizedSearch) || bookTitle.includes(normalizedSearch);
+  });
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -100,7 +114,7 @@ const BookManagement = () => {
           <div className="p-4 bg-white/20 rounded-2xl"><AlertCircle size={24} /></div>
           <div>
             <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Overdue Items</p>
-            <p className="text-2xl font-black">{activeLoans.filter(l => new Date(l.dueDate) < new Date()).length}</p>
+            <p className="text-2xl font-black">{activeLoans.filter((l) => l?.dueDate && new Date(l.dueDate) < new Date()).length}</p>
           </div>
         </div>
       </div>
@@ -122,19 +136,29 @@ const BookManagement = () => {
                 filteredLoans.map((loan) => (
                   <tr key={loan._id} className="hover:bg-gray-50/50 transition-colors group">
                     <td className="px-8 py-5">
-                      <p className="font-black text-gray-800 text-sm">{loan.userId?.name}</p>
-                      <p className="text-[10px] text-[#358a74] font-bold uppercase tracking-tight">{loan.bookId?.title}</p>
+                      <p className="font-black text-gray-800 text-sm">{getBorrowerName(loan)}</p>
+                      <p className="text-[10px] text-[#358a74] font-bold uppercase tracking-tight">{getBookTitle(loan)}</p>
                     </td>
                     <td className="px-8 py-5 text-xs font-black text-gray-500">
-                      {new Date(loan.dueDate).toLocaleDateString('en-GB')}
-                    </td>
-                    <td className="px-8 py-5 text-center">
-                      <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm ${
-                        new Date(loan.dueDate) < new Date() 
-                        ? 'bg-red-50 text-red-500' 
-                        : 'bg-emerald-50 text-[#358a74]'
-                      }`}>
-                        {new Date(loan.dueDate) < new Date() ? 'Overdue' : 'On Track'}
+                        {(() => {
+                          const dt = loan?.dueDate || loan?.due_date;
+                          if (dt && dt._seconds) return new Date(dt._seconds * 1000).toLocaleDateString('en-GB');
+                          return dt ? new Date(dt).toLocaleDateString('en-GB') : "N/A";
+                        })()}
+                      </td>
+                      <td className="px-8 py-5 text-center">
+                        <span className={`px-4 py-1.5 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm ${
+                          (() => {
+                            const dt = loan?.dueDate || loan?.due_date;
+                            const target = (dt && dt._seconds) ? new Date(dt._seconds * 1000) : (dt ? new Date(dt) : null);
+                            return target && target < new Date() ? 'bg-red-50 text-red-500' : 'bg-emerald-50 text-[#358a74]';
+                          })()
+                        }`}>
+                          {(() => {
+                            const dt = loan?.dueDate || loan?.due_date;
+                            const target = (dt && dt._seconds) ? new Date(dt._seconds * 1000) : (dt ? new Date(dt) : null);
+                            return target && target < new Date() ? 'Overdue' : 'On Track';
+                          })()}
                       </span>
                     </td>
                     <td className="px-8 py-5 text-right">

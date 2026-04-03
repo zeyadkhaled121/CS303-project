@@ -24,6 +24,7 @@ const SideBar = ({ isSideBarOpen, setIsSideBarOpen, setSelectedComponent, select
     if (user?.role === "Admin" || user?.role === "Super Admin") {
       menuItems.push({ name: "System Stats", icon: <FaChartPie />, component: "Stats" });
       menuItems.push({ name: "Loan Management", icon: <FaHandHolding />, component: "BookManagement" });
+      menuItems.push({ name: "Borrowing Logistics", icon: <FaBook />, component: "BorrowRequests" });
       menuItems.push({ name: "Users List", icon: <FaUsers />, component: "AllUsers" });
       if (user?.role === "Super Admin") {
         menuItems.push({ name: "Add Admin", icon: <FaUserPlus />, component: "CreateAdmin" });

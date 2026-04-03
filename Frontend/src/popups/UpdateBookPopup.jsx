@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { updateBook } from "../store/slices/bookSlice"; 
 import { toast } from "react-toastify";
-import { X, Save, BookOpen, Edit3, Check } from "lucide-react";
+import { X, Save, Edit3, Check } from "lucide-react";
 
 const UpdateBookPopup = ({ book, onClose }) => {
   const dispatch = useDispatch();

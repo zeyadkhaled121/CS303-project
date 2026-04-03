@@ -77,18 +77,17 @@ const Home = ({ selectedComponent, searchTerm , setSelectedComponent}) => {
         return isAdmin ? <Stats setSelectedComponent={setSelectedComponent} /> : <UserDashboard searchTerm={searchTerm} />;
 
       case "BookManagement":
-        return <BookManagement searchTerm={searchTerm} />;
+        return isAdmin ? <BookManagement searchTerm={searchTerm} /> : <UserDashboard searchTerm={searchTerm} />;
 
       case "AllUsers":
         return isAdmin ? <Users searchTerm={searchTerm} /> : <UserDashboard searchTerm={searchTerm} />;
-      
+
       case "My Borrowed Books":
-        return <MyBorrowedBooks />;
+        return <MyBorrowedBooks searchTerm={searchTerm} />;
 
       case "BorrowingRequests":
-      case "BorrowRequests": 
-        return <BorrowRequests />;
-
+      case "BorrowRequests":
+        return isAdmin ? <BorrowRequests searchTerm={searchTerm} /> : <UserDashboard searchTerm={searchTerm} />;
       default:
         return isAdmin ? <AdminDashboard searchTerm={searchTerm} /> : <UserDashboard searchTerm={searchTerm} />;
     }

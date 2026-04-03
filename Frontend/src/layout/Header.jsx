@@ -1,11 +1,13 @@
-import React, { useState, useRef, useEffect } from "react";
-import { FaSearch, FaChevronDown, FaUserAlt, FaSignOutAlt, FaBell, FaArrowRight, FaInbox } from "react-icons/fa";
+import React, { useState, useRef, useEffect, useCallback } from "react";
+import { FaSearch, FaChevronDown, FaUserAlt, FaSignOutAlt, FaBell, FaInbox } from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
+import { throttle } from "../utils/debounce";
+import api from "../api/axios";
 import logoImg from "../assets/logo.png";
 
-const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearchTerm }) => {
+const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
   const dispatch = useDispatch();
   const navigateTo = useNavigate();
   const location = useLocation();
@@ -15,11 +17,129 @@ const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearch
   
   const dropdownRef = useRef(null);
   const notiRef = useRef(null);
+  const eventSourceRef = useRef(null);
   
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const { borrowings } = useSelector((state) => state.borrow || { borrowings: [] });
+  const { allBorrowedBooks } = useSelector((state) => state.borrow || { allBorrowedBooks: [] });
 
-  const pendingRequests = borrowings?.filter(b => b.status === "Pending") || [];
+  // Notifications State for User and Admin
+  const [realNotifications, setRealNotifications] = useState([]);
+  const [unreadNotiCount, setUnreadNotiCount] = useState(0);
+
+  const fetchNotifications = async () => {
+    try {
+      const res = await api.get('/api/v1/notifications');
+      if (res.data?.success) {
+          const newNotifs = res.data.data.notifications || [];
+          const newCount = res.data.data.unreadCount || 0;
+          
+          // SURGICAL FIX: Prevent deep React re-renders every 2.5s by comparing references
+          setRealNotifications(prev => 
+            JSON.stringify(prev) === JSON.stringify(newNotifs) ? prev : newNotifs
+          );
+          setUnreadNotiCount(prev => prev === newCount ? prev : newCount);
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const buildNotificationStreamUrl = () => {
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
+    return `${baseUrl}/api/v1/notifications/stream`;
+  };
+
+  useEffect(() => {
+    if (!isAuthenticated || !user) {
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+      return;
+    }
+
+    let fallbackInterval = null;
+
+    const connectToNotificationStream = () => {
+      fetchNotifications();
+
+      try {
+        const stream = new EventSource(buildNotificationStreamUrl(), {
+          withCredentials: true
+        });
+
+        eventSourceRef.current = stream;
+
+        stream.addEventListener("connected", () => {
+          if (fallbackInterval) {
+            clearInterval(fallbackInterval);
+            fallbackInterval = null;
+          }
+        });
+
+        stream.addEventListener("notification_changed", () => {
+          fetchNotifications();
+        });
+
+        stream.onerror = () => {
+          if (!fallbackInterval) {
+            fallbackInterval = setInterval(() => {
+              fetchNotifications();
+            }, 30000);
+          }
+        };
+      } catch (error) {
+        console.error("Notification stream failed, fallback polling enabled", error);
+        if (!fallbackInterval) {
+          fallbackInterval = setInterval(() => {
+            fetchNotifications();
+          }, 30000);
+        }
+      }
+    };
+
+    connectToNotificationStream();
+
+    return () => {
+      if (fallbackInterval) {
+        clearInterval(fallbackInterval);
+      }
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+        eventSourceRef.current = null;
+      }
+    };
+  }, [isAuthenticated, user]);
+
+  const markAsRead = async (id, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await api.put(`/api/v1/notifications/${id}/read`);
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to mark notification as read", err);
+    }
+  };
+
+  const markAllAsRead = async () => {
+    try {
+      await api.put('/api/v1/notifications/read-all');
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to mark all notifications as read", err);
+    }
+  };
+
+  const deleteNotification = async (id, e) => {
+    if (e) e.stopPropagation();
+    try {
+      await api.delete(`/api/v1/notifications/${id}`);
+      fetchNotifications();
+    } catch (err) {
+      console.error("Failed to delete notification", err);
+    }
+  };
+
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -39,6 +159,21 @@ const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearch
     setDropdownOpen(false);
     navigateTo("/");
   };
+
+  // Throttle notification bell click to prevent race conditions
+  const throttledNotiClick = useCallback(
+    throttle(() => {
+      setNotiOpen(prev => !prev);
+    }, 300),
+    []
+  );
+
+  const throttledDropdownClick = useCallback(
+    throttle(() => {
+      setDropdownOpen(prev => !prev);
+    }, 300),
+    []
+  );
 
   return (
     <header className="fixed top-0 left-0 w-full bg-[#358a74] py-3 px-8 flex items-center justify-between z-50 h-20 shadow-2xl font-sans">
@@ -71,95 +206,100 @@ const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearch
       <div className="flex items-center gap-4">
         {isAuthenticated && user ? (
           <>
-            {/* NOTIFICATION HUB (Admin Only) */}
-            {(user.role === "Admin" || user.role === "Super Admin") && (
+            {/* UNIFIED NOTIFICATION HUB */}
               <div className="relative" ref={notiRef}>
                 <button
-                  onClick={() => setNotiOpen(!notiOpen)}
-                  className={`p-3 rounded-2xl transition-all duration-500 relative ${
-                    notiOpen ? "bg-white text-[#358a74] shadow-lg" : "hover:bg-white/10 text-white"
-                  }`}
+                  onClick={throttledNotiClick}
+                  className={`p-3 rounded-2xl transition-all duration-500 relative ${notiOpen ? "bg-white text-[#358a74] shadow-lg" : "hover:bg-white/10 text-white"}`}
                 >
                   <FaBell size={20} />
-                  {pendingRequests.length > 0 && (
+                  {unreadNotiCount > 0 && (
                     <span className="absolute top-2.5 right-2.5 w-2.5 h-2.5 bg-rose-500 border-2 border-[#358a74] rounded-full animate-pulse shadow-sm"></span>
                   )}
                 </button>
 
                 {/* Dropdown Menu */}
                 {notiOpen && (
-                  <div className="absolute top-full mt-4 right-0 w-[350px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 z-50 border border-emerald-50 overflow-hidden animate-fadeIn">
+                  <div className="absolute top-full mt-4 right-0 w-[400px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 z-50 border border-emerald-50 overflow-hidden animate-fadeIn">
                     <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-emerald-50/20">
                       <div>
-                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400">Borrow Requests</h3>
-                        <p className="text-[9px] text-emerald-600 font-bold mt-0.5">Awaiting your approval</p>
+                        <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400">Notifications</h3>
+                        <p className="text-[9px] text-emerald-600 font-bold mt-0.5">Recent updates</p>
                       </div>
-                      <span className="bg-[#358a74] text-white text-[10px] px-3 py-1 rounded-full font-black">
-                        {pendingRequests.length}
-                      </span>
+                      <div className="flex gap-2 items-center">
+                        {unreadNotiCount > 0 && (
+                          <button onClick={markAllAsRead} className="text-[9px] font-bold text-[#358a74] hover:underline uppercase tracking-wide">
+                            Mark all read
+                          </button>
+                        )}
+                        <span className="bg-[#358a74] text-white text-[10px] px-3 py-1 rounded-full font-black">
+                          {unreadNotiCount}
+                        </span>
+                      </div>
                     </div>
-                    
+
                     <div className="max-h-[400px] overflow-y-auto custom-scrollbar">
-                      {pendingRequests.length === 0 ? (
+                      {realNotifications.length === 0 ? (
                         <div className="p-12 text-center flex flex-col items-center gap-4">
                           <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-200">
                             <FaInbox size={24} />
                           </div>
                           <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">
-                            No Pending Actions
+                            No Notifications
                           </p>
                         </div>
                       ) : (
-                        pendingRequests.slice(0, 5).map((item) => (
-                          <div 
-                            key={item._id} 
+                        realNotifications.map((item) => (
+                          <div
+                            key={item._id}
                             onClick={() => {
-                              setNotiOpen(false);
-                              if (item.user?._id) {
-                                navigateTo(`/user-profile/${item.user._id}`);
+                              if (!item.read) markAsRead(item._id, { stopPropagation: () => {} });
+                              if (item.actionUrl) {
+                                setNotiOpen(false);
+                                  if (item.actionUrl === "/borrow/all" || item.actionUrl === "/my-borrowings") setSelectedComponent(user.role === "User" ? "My Borrowed Books" : "BorrowRequests");
+                                  if (item.actionUrl === "/borrow-requests" || item.actionUrl === "/admin/borrowLogistics") setSelectedComponent('BorrowRequests');
+                                  navigateTo(item.actionUrl === "/borrow/all" || item.actionUrl === "/my-borrowings" || item.actionUrl === "/admin/borrowLogistics" ? "/" : item.actionUrl);
                               }
                             }}
-                            className="p-6 border-b border-gray-50 hover:bg-emerald-50/50 cursor-pointer transition-all flex gap-4 items-start group"
+                            className={`p-6 border-b border-gray-50 hover:bg-emerald-50/50 cursor-pointer transition-all flex flex-col gap-2 group ${!item.read ? 'bg-emerald-50/20' : ''}`}
                           >
-                            <div className="w-11 h-11 rounded-2xl bg-white border border-slate-100 shadow-sm flex items-center justify-center shrink-0 font-black text-[#358a74] text-sm group-hover:scale-110 transition-transform">
-                              {item.user?.name?.charAt(0)}
+                            <div className="flex justify-between items-start w-full">
+                              <p className="text-[12px] font-black text-gray-800 leading-tight pr-4">
+                                {item.message}
+                              </p>
+                              {!item.read && <div className="w-2 h-2 rounded-full bg-[#358a74] mt-1 shrink-0" />}
                             </div>
-                            <div className="flex flex-col flex-1">
-                              <p className="text-[12px] font-black text-gray-800 leading-tight">
-                                <span className="text-[#358a74]">{item.user?.name}</span>
-                              </p>
-                              <p className="text-[11px] font-medium text-gray-400 mt-0.5 line-clamp-1 text-left">
-                                Requested: <span className="italic font-bold text-gray-600">"{item.book?.title}"</span>
-                              </p>
-                              <div className="flex items-center gap-2 mt-3">
-                                <span className="text-[8px] font-black uppercase tracking-widest text-amber-500 bg-amber-50 px-2 py-0.5 rounded-md">Pending Review</span>
-                                <FaArrowRight size={8} className="text-slate-300 group-hover:translate-x-1 transition-transform" />
+                            <div className="flex justify-between items-center mt-2">
+                              <span className="text-[10px] font-bold text-gray-400">
+                                {(() => {
+                                  const dt = item.createdAt;
+                                  if (dt && dt._seconds) return new Date(dt._seconds * 1000).toLocaleString();
+                                  return dt ? new Date(dt).toLocaleString() : "Recently";
+                                })()}
+                              </span>
+                              <div className="flex gap-3">
+                                {!item.read && (
+                                  <button onClick={(e) => markAsRead(item._id, e)} className="text-[10px] text-[#358a74] font-bold hover:underline">
+                                    Mark Read
+                                  </button>
+                                )}
+                                <button onClick={(e) => deleteNotification(item._id, e)} className="text-[10px] text-rose-500 font-bold hover:underline">
+                                  Delete
+                                </button>
                               </div>
                             </div>
                           </div>
                         ))
                       )}
                     </div>
-                    
-                  <button 
-  onClick={() => { 
-    setNotiOpen(false); 
-    navigateTo("/borrow-requests"); 
-    setSelectedComponent("BorrowRequests"); 
-  }}
-  className="w-full py-5 text-[10px] font-black text-[#358a74] uppercase tracking-[0.4em] hover:bg-emerald-50 transition-colors border-t border-gray-50 bg-slate-50/30"
->
-  View All Activity
-</button>
                   </div>
                 )}
               </div>
-            )}
 
             {/* PROFILE MENU */}
             <div className="relative" ref={dropdownRef}>
               <button
-                onClick={() => setDropdownOpen(!dropdownOpen)}
+                onClick={throttledDropdownClick}
                 className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-2xl hover:bg-white/20 transition-all border border-white/5"
               >
                 <div className="w-9 h-9 rounded-xl bg-white text-[#358a74] flex items-center justify-center font-black shadow-lg uppercase text-sm">
@@ -212,3 +352,4 @@ const Header = ({ setSelectedComponent, selectedComponent, searchTerm, setSearch
 };
 
 export default Header;
+

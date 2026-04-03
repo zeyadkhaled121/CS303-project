@@ -3,15 +3,25 @@ import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { db } from "../database/db.js";
 import cloudinary from "cloudinary";
 
-// Get All Books 
+// Get All Books (Added Pagination for DB DoS Protection)
 export const getAllBooks = catchAsyncErrors(async (req, res, next) => {
-    const snapshot = await db.collection("books").orderBy("createdAt", "desc").get();
+    const { skip = 0, limit = 1000 } = req.query; // Default upper bound 1000
+    const snapshot = await db.collection("books")
+        .orderBy("createdAt", "desc")
+        .offset(parseInt(skip))
+        .limit(parseInt(limit))
+        .get();
+
     const books = [];
     snapshot.forEach((doc) => books.push({ id: doc.id, ...doc.data() }));
+    
+    // Also return count to allow frontend pagination
+    const countSnap = await db.collection("books").count().get();
+    
     res.status(200).json({
         success: true,
         message: "Books fetched successfully.",
-        data: { books },
+        data: { books, total: countSnap.data().count },
         error: null,
     });
 });
@@ -23,10 +33,16 @@ export const createBook = catchAsyncErrors(async (req, res, next) => {
     }
 
     const { image } = req.files;
-    const { title, genre, author, edition } = req.body;
+    const { title, genre, author, edition, totalCopies } = req.body;
 
     if (!title || !genre || !author || !edition) {
         return next(new ErrorHandler("Please provide title, genre, author, and edition.", 400));
+    }
+
+    // Validate totalCopies (new field for borrowing system)
+    const copies = totalCopies ? parseInt(totalCopies) : 1;
+    if (isNaN(copies) || copies <= 0) {
+        return next(new ErrorHandler("Total copies must be a positive number.", 400));
     }
 
     const cloudinaryResponse = await cloudinary.v2.uploader.upload(image.tempFilePath, {
@@ -43,6 +59,8 @@ export const createBook = catchAsyncErrors(async (req, res, next) => {
         author,
         edition,
         status: "Available", 
+        totalCopies: copies,
+        availableCopies: copies,
         image: {
             public_id: cloudinaryResponse.public_id,
             url: cloudinaryResponse.secure_url,
@@ -64,30 +82,30 @@ export const createBook = catchAsyncErrors(async (req, res, next) => {
 // 2. Update a Book (Admin and super admin)
 export const updateBook = catchAsyncErrors(async (req, res, next) => {
     const bookId = req.params.id;
-    const { title, genre, author, edition } = req.body;
+    const { title, genre, author, edition, totalCopies } = req.body;
 
     const bookRef = db.collection("books").doc(bookId);
-    const bookDoc = await bookRef.get();
+    let bookDoc = await bookRef.get();
 
     if (!bookDoc.exists) {
         return next(new ErrorHandler("Book not found.", 404));
     }
 
-    let bookData = bookDoc.data();
-    
-    let updateData = {
-        title: title || bookData.title,
-        genre: genre || bookData.genre,
-        author: author || bookData.author,
-        edition: edition || bookData.edition,
-        updatedAt: new Date(),
-    };
+    let bookDataForImage = bookDoc.data();
 
+    // Ensure no copies are currently borrowed before allowing an edit
+    if (bookDataForImage.totalCopies !== bookDataForImage.availableCopies) {
+        return next(new ErrorHandler("Cannot edit book details while copies are currently borrowed or unreturned.", 403));
+    }
+
+    let newImageData = null;
+
+    // Do slow network ops outside transaction
     if (req.files && req.files.image) {
         const { image } = req.files;
-        
-        if (bookData.image && bookData.image.public_id) {
-            await cloudinary.v2.uploader.destroy(bookData.image.public_id);
+
+        if (bookDataForImage.image && bookDataForImage.image.public_id) {
+            await cloudinary.v2.uploader.destroy(bookDataForImage.image.public_id);
         }
 
         const cloudinaryResponse = await cloudinary.v2.uploader.upload(image.tempFilePath, {
@@ -98,13 +116,58 @@ export const updateBook = catchAsyncErrors(async (req, res, next) => {
             return next(new ErrorHandler("Failed to upload new book image.", 500));
         }
 
-        updateData.image = {
+        newImageData = {
             public_id: cloudinaryResponse.public_id,
             url: cloudinaryResponse.secure_url,
         };
     }
 
-    await bookRef.update(updateData);
+    // Atomic Math Update
+    await db.runTransaction(async (transaction) => {
+        const latestDoc = await transaction.get(bookRef);
+        if (!latestDoc.exists) {
+            throw new Error("Book removed during update");
+        }
+        
+        let latestData = latestDoc.data();
+        let updateData = {
+            title: title || latestData.title,
+            genre: genre || latestData.genre,
+            author: author || latestData.author,
+            edition: edition || latestData.edition,
+            updatedAt: new Date(),
+        };
+
+        if (newImageData) {
+            updateData.image = newImageData;
+        }
+
+        // Handle totalCopies change with delta logic cleanly inside transaction
+        if (totalCopies !== undefined) {
+            const newTotal = parseInt(totalCopies);
+            if (isNaN(newTotal) || newTotal <= 0) {
+                throw new ErrorHandler("Total copies must be a positive number.", 400);
+            }
+
+            const oldTotal = latestData.totalCopies || 1;
+            const delta = newTotal - oldTotal;
+            const newAvailable = Math.max(0, (latestData.availableCopies || oldTotal) + delta);
+
+            // Prevent availableCopies from going below 0
+            if (newAvailable < 0) {
+                throw new ErrorHandler(
+                    `Cannot reduce total copies below ${oldTotal - (latestData.availableCopies || oldTotal)} (currently borrowed).`,
+                    400
+                );
+            }
+
+            updateData.totalCopies = newTotal;
+            updateData.availableCopies = newAvailable;
+            updateData.status = newAvailable > 0 ? "Available" : "Borrowed";
+        }
+
+        transaction.update(bookRef, updateData);
+    });
 
     res.status(200).json({
         success: true,
@@ -126,6 +189,19 @@ export const deleteBook = catchAsyncErrors(async (req, res, next) => {
     }
 
     const bookData = bookDoc.data();
+
+    // Block deletion only when there are truly active borrow records.
+    // This avoids false blocks from legacy copy-count mismatches (e.g. old Lost/Damaged flows).
+    const activeBorrowSnapshot = await db
+        .collection("borrow")
+        .where("book_id", "==", bookId)
+        .where("status", "in", ["Pending", "Borrowed", "Overdue"])
+        .limit(1)
+        .get();
+
+    if (!activeBorrowSnapshot.empty) {
+        return next(new ErrorHandler("Cannot delete book while it still has active borrow records.", 400));
+    }
 
     if (bookData.image && bookData.image.public_id) {
         await cloudinary.v2.uploader.destroy(bookData.image.public_id);

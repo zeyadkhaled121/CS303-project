@@ -150,9 +150,7 @@ const authSlice = createSlice({
     resetAuthSlice(state) {
         state.error = null;
         state.message = null;
-        state.user = state.user;
-        state.loading = false
-        state.isAuthenticated = state.isAuthenticated
+        state.loading = false;
       },
       getAllUsersRequest(state) {
   state.loading = true;
@@ -259,7 +257,7 @@ export const updatePassword = (data) => (dispatch) => {
 export const getAllUsers = () => (dispatch) => {
   dispatch(authSlice.actions.getAllUsersRequest());
   api
-    .get("/api/v1/user/getall") 
+    .get("/api/v1/user/admin/users")
     .then((res) => dispatch(authSlice.actions.getAllUsersSuccess(res.data.data.users)))
     .catch((error) => dispatch(authSlice.actions.getAllUsersFailed(getErrorMsg(error))));
 };

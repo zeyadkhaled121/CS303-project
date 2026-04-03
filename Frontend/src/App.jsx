@@ -15,7 +15,9 @@ import SideBar from "./layout/SideBar";
 import Header from "./layout/Header";
 import { fetchAllBooks } from "./store/slices/bookSlice";
 import UserProfile from "./components/UserProfile";
-import BorrowRequests from "./components/BorrowRequests"
+import BorrowRequests from "./components/BorrowRequests";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AppErrorBoundary from "./components/AppErrorBoundary";
 
 const App = () => {
   const dispatch = useDispatch();
@@ -42,8 +44,9 @@ const App = () => {
   }, [dispatch]);
 
   return (
-    <Router>
-      <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
+    <AppErrorBoundary>
+      <Router>
+        <div className="min-h-screen bg-[#f8fafc] flex flex-col font-sans">
         
         <Header 
           isSideBarOpen={isSideBarOpen} 
@@ -74,13 +77,21 @@ const App = () => {
                     <Route path="login" element={<Login />} />
                     <Route path="register" element={<Register />} />
                 </Route>
-                
+
                 <Route path="/password/forgot" element={<ForgotPassword />} />
                 <Route path="/otp-verification/:email" element={<OTP />} />
                 <Route path="/password/reset" element={<ResetPassword />} />
-                <Route path="/settings" element={<Settings setSelectedComponent={setSelectedComponent} />} />
-                <Route path="/user-profile/:userId" element={<UserProfile />} />
-                <Route path="/borrow-requests" element={<BorrowRequests />} />
+                
+                {/* Protected Routes (All Authenticated Users) */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/settings" element={<Settings setSelectedComponent={setSelectedComponent} />} />
+                </Route>
+
+                {/* Admin Only Routes */}
+                <Route element={<ProtectedRoute allowedRoles={["Admin", "Super Admin"]} />}>
+                  <Route path="/user-profile/:userId" element={<UserProfile />} />
+                  <Route path="/borrow-requests" element={<BorrowRequests />} />
+                </Route>
               </Routes>
             </div>
           </main>
@@ -92,8 +103,9 @@ const App = () => {
           toastStyle={{ backgroundColor: "#358a74" }}
           rtl={false} 
         />
-      </div>
-    </Router>
+        </div>
+      </Router>
+    </AppErrorBoundary>
   );
 };
 

@@ -12,6 +12,7 @@ const AddBookPopup = ({ editBook }) => {
   const [author, setAuthor] = useState("");
   const [genre, setGenre] = useState("");
   const [edition, setEdition] = useState("");
+  const [totalCopies, setTotalCopies] = useState(1);
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
   const [submitted, setSubmitted] = useState(false);
@@ -24,6 +25,7 @@ const AddBookPopup = ({ editBook }) => {
       setAuthor(editBook.author || "");
       setGenre(editBook.genre || "");
       setEdition(editBook.edition || "");
+      setTotalCopies(editBook.totalCopies || 1);
       setImagePreview(editBook.image?.url || "");
     }
   }, [editBook]);
@@ -46,14 +48,23 @@ const AddBookPopup = ({ editBook }) => {
     }
   };
 
+  const [localError, setLocalError] = useState("");
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setLocalError("");
+
+    if (!isEditing && !image) {
+      setLocalError("Please upload a book cover image.");
+      return;
+    }
 
     const formData = new FormData();
     formData.append("title", title);
     formData.append("author", author);
     formData.append("genre", genre);
     formData.append("edition", edition);
+    formData.append("totalCopies", totalCopies);
     if (image) {
       formData.append("image", image);
     }
@@ -192,6 +203,29 @@ const AddBookPopup = ({ editBook }) => {
               className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
             />
           </div>
+
+          {/* Total Copies */}
+          <div>
+            <label className="block text-xs font-bold text-gray-400 uppercase mb-2 ml-1">
+              Total Copies
+            </label>
+            <input
+              type="number"
+              min="1"
+              value={totalCopies}
+              onChange={(e) => setTotalCopies(e.target.value)}
+              placeholder="Number of copies available"
+              required
+              className="w-full border border-gray-100 bg-gray-50/50 rounded-xl py-3 px-4 focus:ring-2 focus:ring-[#358a74]/20 focus:border-[#358a74] outline-none transition-all"
+            />
+          </div>
+
+          {/* Error Message */}
+          {(localError || error) && (
+            <div className="bg-red-50 border border-red-200 text-red-600 text-sm rounded-xl px-4 py-3">
+              {localError || error}
+            </div>
+          )}
 
           {/* Submit */}
           <div className="pt-2">

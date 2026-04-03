@@ -14,8 +14,8 @@ export const register = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter all Fields.", 400));
     }
 
-    if (password.length < 8 || password.length > 16) {
-        return next(new ErrorHandler("Password must be between 8 and 16 Characters.", 400));
+    if (typeof password !== "string" || password.length < 8 || password.length > 16) {
+        return next(new ErrorHandler("Password must be a string between 8 and 16 Characters.", 400));
     }
 
     let assignedRole = "User";
@@ -155,6 +155,10 @@ export const loginUser = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter Email and Password", 400));
     }
 
+    if (typeof password !== "string") {
+        return next(new ErrorHandler("Invalid password format", 400));
+    }
+
     const userSnapshot = await db.collection("users").where("email", "==", email).get();
 
     if (userSnapshot.empty) {
@@ -253,8 +257,8 @@ export const forgotPassword = catchAsyncErrors(async (req, res, next) => {
 export const resetPassword = catchAsyncErrors(async (req, res, next) => {
     const { email, otp, newPassword, confirmNewPassword } = req.body;
 
-    if (newPassword !== confirmNewPassword) {
-        return next(new ErrorHandler("Passwords do not match", 400));
+    if (!newPassword || typeof newPassword !== "string" || newPassword !== confirmNewPassword) {
+        return next(new ErrorHandler("Passwords do not match or invalid format", 400));
     }
 
     if (newPassword.length < 8 || newPassword.length > 16) {
@@ -301,6 +305,10 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Please enter all fields", 400));
     }
 
+    if (typeof oldPassword !== "string" || typeof newPassword !== "string") {
+        return next(new ErrorHandler("Invalid password format", 400));
+    }
+
     if (newPassword !== confirmNewPassword) {
         return next(new ErrorHandler("New passwords do not match", 400));
     }
@@ -329,24 +337,29 @@ export const updatePassword = catchAsyncErrors(async (req, res, next) => {
 // 9. Get All Users (Role-filtered)
 export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
     const requesterRole = req.user.role;
+    const { skip = 0, limit = 1000 } = req.query; // DB DoS protection
+
     let usersQuery;
+    let baseQuery;
 
     if (requesterRole === "Admin") {
-        usersQuery = await db
-            .collection("users")
+        baseQuery = db.collection("users")
             .where("role", "==", "User")
-            .where("accountVerified", "==", true)
-            .get();
+            .where("accountVerified", "==", true);
     } else if (requesterRole === "Super Admin") {
-        usersQuery = await db
-            .collection("users")
-            .where("accountVerified", "==", true)
-            .get();
+        baseQuery = db.collection("users")
+            .where("accountVerified", "==", true);
     } else {
         return next(new ErrorHandler("Access denied.", 403));
     }
 
-    const users = usersQuery.docs.map((doc) => {
+    // Run count and query in parallel
+    const [countSnap, querySnap] = await Promise.all([
+        baseQuery.count().get(),
+        baseQuery.offset(parseInt(skip)).limit(parseInt(limit)).get()
+    ]);
+
+    const users = querySnap.docs.map((doc) => {
         const {
             password,
             verificationCode,
@@ -361,7 +374,7 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Users fetched successfully.",
-        data: { users },
+        data: { users, total: countSnap.data().count },
         error: null,
     });
 });
@@ -460,6 +473,57 @@ export const deleteUser = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Cannot delete a Super Admin account.", 403));
     }
 
+    const pendingBorrows = await db
+        .collection("borrow")
+        .where("user_id", "==", userId)
+        .where("status", "==", "Pending")
+        .get();
+
+    if (pendingBorrows.size > 0) {
+        const batch = db.batch();
+        pendingBorrows.docs.forEach((doc) => {
+            batch.update(doc.ref, { status: "Cancelled" });
+        });
+        await batch.commit();
+    }
+
+    // Process Borrowed/Overdue records (need to restore availableCopies in transactions)
+    const activeBorrows = await db
+        .collection("borrow")
+        .where("user_id", "==", userId)
+        .where("status", "in", ["Borrowed", "Overdue"])
+        .get();
+
+    for (const borrowDoc of activeBorrows.docs) {
+        const borrowData = borrowDoc.data();
+
+        try {
+            await db.runTransaction(async (transaction) => {
+const bookRef = db.collection("books").doc(borrowData.book_id);
+                const bookDoc = await transaction.get(bookRef);
+
+                if (bookDoc.exists) {
+                    const currentCopies = bookDoc.data().availableCopies || 0;
+                    // Increment availableCopies (restore the copy)
+                    transaction.update(bookRef, {
+                        availableCopies: currentCopies + 1,
+                        updatedAt: new Date()
+                    });
+                }
+
+                // Cancel the borrow record
+                transaction.update(borrowDoc.ref, {
+                    status: "Cancelled",
+                    updatedAt: new Date()
+                });
+            });
+        } catch (error) {
+            console.error(`Failed to cleanup borrow ${borrowDoc.id}:`, error.message);
+            // Continue with next record
+        }
+    }
+
+    // Delete user document
     await userRef.delete();
 
     res.status(200).json({

@@ -5,6 +5,7 @@ export const sendEmail = async ({ email, subject, message }) => {
     host: process.env.SMTP_HOST,
     service: process.env.SMTP_SERVICE,
     port: process.env.SMTP_PORT,
+    secure: true, // true for 465, false for other ports
     auth: {
       user: process.env.SMTP_MAIL,
       pass: process.env.SMTP_PASSWORD,
