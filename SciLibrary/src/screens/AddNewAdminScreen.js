@@ -1,9 +1,25 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { useSelector } from 'react-redux';
 import Toast from 'react-native-toast-message';
 import API from '../api/axios';
 
 export default function AddNewAdminScreen({ navigation }) {
+  const { user } = useSelector((state) => state.auth);
+
+  // Role validation - Super Admin only
+  const isSuperAdmin = user?.role === 'Super Admin';
+  if (!isSuperAdmin) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.accessDeniedContainer}>
+          <Text style={styles.accessDeniedText}>Access Denied</Text>
+          <Text style={styles.accessDeniedSubtext}>Super Admin access required</Text>
+        </View>
+      </View>
+    );
+  }
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -63,6 +79,9 @@ export default function AddNewAdminScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
+  accessDeniedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  accessDeniedText: { fontSize: 20, fontWeight: 'bold', color: '#dc2626', marginBottom: 8, textAlign: 'center' },
+  accessDeniedSubtext: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
   scroll: { flexGrow: 1, padding: 24, paddingTop: 50 },
   backButton: { marginBottom: 20 },
   backText: { color: '#358a74', fontWeight: 'bold', fontSize: 16 },

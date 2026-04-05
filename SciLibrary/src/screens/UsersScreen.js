@@ -9,6 +9,19 @@ export default function UsersScreen({ navigation }) {
   const { users, loading, error, message } = useSelector((state) => state.user);
   const { user: currentUser } = useSelector((state) => state.auth);
   
+  // Role validation - Admin only
+  const isAdmin = currentUser?.role === 'Admin' || currentUser?.role === 'Super Admin';
+  if (!isAdmin) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.accessDeniedContainer}>
+          <Text style={styles.accessDeniedText}>Access Denied</Text>
+          <Text style={styles.accessDeniedSubtext}>Admin access required</Text>
+        </View>
+      </View>
+    );
+  }
+
   const [searchTerm, setSearchTerm] = useState('');
   const isSuperAdmin = currentUser?.role === "Super Admin";
 
@@ -112,8 +125,18 @@ export default function UsersScreen({ navigation }) {
           data={filteredUsers}
           keyExtractor={(item) => item._id || item.id?.toString()}
           renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 30 }}
+          contentContainerStyle={{ paddingBottom: 80 }}
         />
+      )}
+
+      {/* Floating Action Button for Add Admin */}
+      {isSuperAdmin && (
+        <TouchableOpacity 
+          style={styles.fab}
+          onPress={() => navigation.navigate('AddNewAdmin')}
+        >
+          <Text style={styles.fabText}>+</Text>
+        </TouchableOpacity>
       )}
     </View>
   );
@@ -121,6 +144,9 @@ export default function UsersScreen({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
+  accessDeniedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  accessDeniedText: { fontSize: 20, fontWeight: 'bold', color: '#dc2626', marginBottom: 8, textAlign: 'center' },
+  accessDeniedSubtext: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
   header: { padding: 20, paddingTop: 50, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f3f4f6' },
   title: { fontSize: 24, fontWeight: 'bold', color: '#111' },
   subtitle: { fontSize: 14, color: '#6b7280', marginTop: 4 },
@@ -132,13 +158,22 @@ const styles = StyleSheet.create({
   avatarText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   name: { fontSize: 16, fontWeight: 'bold', color: '#111' },
   email: { fontSize: 13, color: '#6b7280', marginBottom: 6 },
-  roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 10 },
-  bgPurple: { backgroundColor: '#f3e8ff' }, textPurple: { color: '#7e22ce', fontSize: 10, fontWeight: 'bold' },
-  bgEmerald: { backgroundColor: '#ecfdf5' }, textEmerald: { color: '#059669', fontSize: 10, fontWeight: 'bold' },
-  bgGray: { backgroundColor: '#f3f4f6' }, textGray: { color: '#4b5563', fontSize: 10, fontWeight: 'bold' },
-  actions: { flexDirection: 'row', marginTop: 15, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 15, gap: 10 },
-  actionBtn: { flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center' },
-  promoteBtn: { backgroundColor: '#eff6ff' }, promoteText: { color: '#2563eb', fontWeight: 'bold', fontSize: 12 },
-  demoteBtn: { backgroundColor: '#fffbeb' }, demoteText: { color: '#d97706', fontWeight: 'bold', fontSize: 12 },
-  deleteBtn: { backgroundColor: '#fef2f2' }, deleteText: { color: '#dc2626', fontWeight: 'bold', fontSize: 12 },
+  roleText: { fontSize: 12, fontWeight: 'bold' },
+  roleBadge: { alignSelf: 'flex-start', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12 },
+  bgPurple: { backgroundColor: '#f3e8ff' },
+  textPurple: { color: '#9333ea' },
+  bgEmerald: { backgroundColor: '#d1fae5' },
+  textEmerald: { color: '#059669' },
+  bgGray: { backgroundColor: '#f3f4f6' },
+  textGray: { color: '#4b5563' },
+  actions: { flexDirection: 'row', gap: 10, marginTop: 15, borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 15 },
+  actionBtn: { paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, alignItems: 'center' },
+  promoteBtn: { backgroundColor: '#d1fae5', flex: 1 },
+  promoteText: { color: '#059669', fontWeight: 'bold' },
+  demoteBtn: { backgroundColor: '#fee2e2', flex: 1 },
+  demoteText: { color: '#ef4444', fontWeight: 'bold' },
+  deleteBtn: { backgroundColor: '#fee2e2', flex: 1 },
+  deleteText: { color: '#ef4444', fontWeight: 'bold' },
+  fab: { position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: '#358a74', alignItems: 'center', justifyContent: 'center', elevation: 5 },
+  fabText: { fontSize: 30, color: '#fff', fontWeight: 'bold', marginTop: -2 }
 });

@@ -28,13 +28,10 @@ const LoginScreen = function ({ navigation }) {
   }, []);
 
   useEffect(() => {
-    if (auth.isAuthenticated) {
-      navigation.reset({ index: 0, routes: [{ name: 'Home' }] });
-    }
     if (auth.error) {
       Alert.alert('Login Failed', auth.error);
     }
-  }, [auth.isAuthenticated, auth.error]);
+  }, [auth.error]);
 
   const validateInputs = () => {
     if (!email.trim()) {

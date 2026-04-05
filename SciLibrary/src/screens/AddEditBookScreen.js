@@ -11,11 +11,26 @@ export default function AddEditBookScreen({ route, navigation }) {
 
   const dispatch = useDispatch();
   const { loading, error, message } = useSelector((state) => state.book);
+  const { user } = useSelector((state) => state.auth);
+
+  // Role validation - Admin only
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
+  if (!isAdmin) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.accessDeniedContainer}>
+          <Text style={styles.accessDeniedText}>Access Denied</Text>
+          <Text style={styles.accessDeniedSubtext}>Admin access required</Text>
+        </View>
+      </View>
+    );
+  }
 
   const [title, setTitle] = useState('');
   const [author, setAuthor] = useState('');
   const [genre, setGenre] = useState('');
   const [edition, setEdition] = useState('');
+  const [totalCopies, setTotalCopies] = useState('');
   const [image, setImage] = useState(null);
   const [imagePreview, setImagePreview] = useState('');
 
@@ -25,6 +40,7 @@ export default function AddEditBookScreen({ route, navigation }) {
       setAuthor(bookToEdit.author || '');
       setGenre(bookToEdit.genre || '');
       setEdition(bookToEdit.edition || '');
+      setTotalCopies(bookToEdit.totalCopies ? bookToEdit.totalCopies.toString() : '');
       setImagePreview(bookToEdit.image?.url || '');
     }
   }, [bookToEdit]);
@@ -57,7 +73,7 @@ export default function AddEditBookScreen({ route, navigation }) {
   };
 
   const handleSubmit = () => {
-    if (!title || !author || !genre || !edition) {
+    if (!title || !author || !genre || !edition || !totalCopies) {
       Toast.show({ type: 'error', text1: 'Validation Error', text2: 'Please fill all fields' });
       return;
     }
@@ -67,6 +83,7 @@ export default function AddEditBookScreen({ route, navigation }) {
     formData.append("author", author);
     formData.append("genre", genre);
     formData.append("edition", edition);
+    formData.append("totalCopies", parseInt(totalCopies, 10));
 
     if (image) {
       const localUri = image.uri;
@@ -125,6 +142,11 @@ export default function AddEditBookScreen({ route, navigation }) {
           <TextInput style={styles.input} value={edition} onChangeText={setEdition} placeholder="e.g. 1st, 2nd, 3rd" />
         </View>
 
+        <View style={styles.inputGroup}>
+          <Text style={styles.label}>Number of Copies</Text>
+          <TextInput style={styles.input} value={totalCopies} onChangeText={setTotalCopies} placeholder="e.g. 10" keyboardType="numeric" />
+        </View>
+
         <TouchableOpacity style={styles.submitBtn} onPress={handleSubmit} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{isEditing ? "Update Book" : "Add Book"}</Text>}
         </TouchableOpacity>
@@ -135,6 +157,9 @@ export default function AddEditBookScreen({ route, navigation }) {
 
 const styles = StyleSheet.create({
   container: { flexGrow: 1, backgroundColor: '#f9fafb', padding: 20, paddingTop: 50 },
+  accessDeniedContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 20 },
+  accessDeniedText: { fontSize: 20, fontWeight: 'bold', color: '#dc2626', marginBottom: 8, textAlign: 'center' },
+  accessDeniedSubtext: { fontSize: 14, color: '#6b7280', textAlign: 'center' },
   backBtn: { marginBottom: 20 },
   backText: { color: '#358a74', fontWeight: 'bold', fontSize: 16 },
   headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#111' },

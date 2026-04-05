@@ -3,10 +3,24 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert, Activ
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAllBooks, deleteBook } from '../store/books'; 
 import Toast from 'react-native-toast-message';
+import { COLORS } from '../../shared/designTokens';
 
 export default function AdminDashboardScreen({ navigation }) {
   const dispatch = useDispatch();
   const { books, loading } = useSelector((state) => state.book);
+  const { user } = useSelector((state) => state.auth);
+
+  const isAdmin = user?.role === 'Admin' || user?.role === 'Super Admin';
+  if (!isAdmin) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.accessDeniedContainer}>
+          <Text style={styles.accessDeniedText}>Access Denied</Text>
+          <Text style={styles.accessDeniedSubtext}>Admin access required</Text>
+        </View>
+      </View>
+    );
+  }
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -83,7 +97,7 @@ export default function AdminDashboardScreen({ navigation }) {
 
       {/* List */}
       {loading ? (
-        <ActivityIndicator size="large" color="#358a74" style={{ marginTop: 50 }} />
+        <ActivityIndicator size="large" color={COLORS.brand.primary} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={books}
@@ -105,24 +119,24 @@ export default function AdminDashboardScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f4f7f6' },
-  header: { padding: 20, paddingTop: 50, backgroundColor: '#358a74' },
-  headerTitle: { fontSize: 24, fontWeight: 'bold', color: '#fff' },
-  headerSubtitle: { fontSize: 14, color: '#e2e8f0', marginTop: 4 },
+  container: { flex: 1, backgroundColor: COLORS.background.secondary },
+  header: { padding: 20, paddingTop: 50, backgroundColor: COLORS.brand.primary },
+  headerTitle: { fontSize: 24, fontWeight: 'bold', color: COLORS.text.onBrand },
+  headerSubtitle: { fontSize: 14, color: COLORS.neutral[200], marginTop: 4 },
   statsContainer: { padding: 20, flexDirection: 'row', justifyContent: 'space-between' },
-  statBox: { backgroundColor: '#fff', padding: 15, borderRadius: 12, flex: 1, alignItems: 'center', elevation: 2 },
-  statLabel: { fontSize: 12, color: '#6b7280', fontWeight: 'bold', textTransform: 'uppercase' },
-  statValue: { fontSize: 24, fontWeight: '900', color: '#358a74', marginTop: 4 },
-  card: { flexDirection: 'row', backgroundColor: '#fff', marginHorizontal: 20, marginBottom: 15, borderRadius: 12, padding: 10, elevation: 2 },
-  image: { width: 80, height: 110, borderRadius: 8, backgroundColor: '#eee' },
+  statBox: { backgroundColor: COLORS.background.primary, padding: 15, borderRadius: 12, flex: 1, alignItems: 'center', elevation: 2 },
+  statLabel: { fontSize: 12, color: COLORS.text.secondary, fontWeight: 'bold', textTransform: 'uppercase' },
+  statValue: { fontSize: 24, fontWeight: '900', color: COLORS.brand.primary, marginTop: 4 },
+  card: { flexDirection: 'row', backgroundColor: COLORS.background.primary, marginHorizontal: 20, marginBottom: 15, borderRadius: 12, padding: 10, elevation: 2 },
+  image: { width: 80, height: 110, borderRadius: 8, backgroundColor: COLORS.neutral[200] },
   info: { flex: 1, marginLeft: 15, justifyContent: 'center' },
-  title: { fontSize: 16, fontWeight: 'bold', color: '#1f2937', marginBottom: 4 },
-  author: { fontSize: 13, color: '#6b7280', marginBottom: 12 },
+  title: { fontSize: 16, fontWeight: 'bold', color: COLORS.text.primary, marginBottom: 4 },
+  author: { fontSize: 13, color: COLORS.text.secondary, marginBottom: 12 },
   actions: { flexDirection: 'row', gap: 10 },
   btn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, alignItems: 'center', flex: 1 },
-  editBtn: { backgroundColor: '#eff6ff' },
-  deleteBtn: { backgroundColor: '#fef2f2' },
-  btnText: { fontSize: 12, fontWeight: 'bold', color: '#111' },
-  fab: { position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: '#358a74', alignItems: 'center', justifyContent: 'center', elevation: 5 },
-  fabText: { fontSize: 30, color: '#fff', fontWeight: 'bold', marginTop: -2 }
+  editBtn: { backgroundColor: COLORS.neutral[100] },
+  deleteBtn: { backgroundColor: COLORS.neutral[100] },
+  btnText: { fontSize: 12, fontWeight: 'bold', color: COLORS.text.primary },
+  fab: { position: 'absolute', bottom: 30, right: 30, width: 60, height: 60, borderRadius: 30, backgroundColor: COLORS.brand.primary, alignItems: 'center', justifyContent: 'center', elevation: 5 },
+  fabText: { fontSize: 30, color: COLORS.text.onBrand, fontWeight: 'bold', marginTop: -2 }
 });

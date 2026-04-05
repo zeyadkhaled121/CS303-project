@@ -1,129 +1,388 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator } from 'react-native';
-import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../store/slices/authSlice'; 
-import Toast from 'react-native-toast-message';
-import API from '../api/axios';
+import React, { useMemo, useState } from 'react';
+import {
+  View,
+  Text,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  Alert,
+  ActivityIndicator,
+} from 'react-native';
+import { useDispatch, useSelector } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
+import api from '../api/axios';
+import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../../shared/designTokens';
 
-export default function SettingsScreen({ navigation }) {
+const SettingsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmittingPassword, setIsSubmittingPassword] = useState(false);
 
-  const handleUpdatePassword = async () => {
-    if (!oldPassword || !newPassword) {
-      Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill all password fields' });
-      return;
-    }
-    setLoading(true);
-    try {
-      await API.put('/api/v1/user/password/update', { oldPassword, newPassword, confirmNewPassword: newPassword });
-      Toast.show({ type: 'success', text1: 'Success', text2: 'Password updated successfully' });
-      setOldPassword('');
-      setNewPassword('');
-    } catch (err) {
-      Toast.show({ type: 'error', text1: 'Error', text2: err.response?.data?.message || 'Failed to update password' });
-    } finally {
-      setLoading(false);
-    }
-  };
+  const role = user?.role || 'Reader';
+  const isAdmin = role === 'Admin' || role === 'Super Admin';
+  const isSuperAdmin = role === 'Super Admin';
+
+  const walletBalance = useMemo(() => Number(user?.walletBalance ?? user?.wallet ?? 0), [user]);
+  const fineAmount = useMemo(() => Number(user?.fine ?? user?.fines ?? 0), [user]);
 
   const handleLogout = () => {
-    dispatch(logout());
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
+    Alert.alert('Sign out', 'Are you sure you want to sign out?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Sign out',
+        style: 'destructive',
+        onPress: () => dispatch(logout()),
+      },
+    ]);
+  };
+
+  const handleUpdatePassword = async () => {
+    if (!oldPassword || !newPassword || !confirmPassword) {
+      Alert.alert('Missing fields', 'Please fill out all password fields.');
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      Alert.alert('Password mismatch', 'New password and confirm password do not match.');
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      Alert.alert('Weak password', 'Password must be at least 6 characters long.');
+      return;
+    }
+
+    setIsSubmittingPassword(true);
+
+    try {
+      await api.put('/api/v1/user/password/update', {
+        oldPassword,
+        newPassword,
+        confirmNewPassword: confirmPassword,
+      });
+
+      Alert.alert('Password updated', 'Your password was updated successfully.');
+      setOldPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+    } catch (error) {
+      Alert.alert(
+        'Update failed',
+        error.response?.data?.message || 'Unable to update password right now. Please try again.',
+      );
+    } finally {
+      setIsSubmittingPassword(false);
+    }
   };
 
   return (
-    <ScrollView style={styles.container}>
-      <Text style={styles.headerTitle}>Account Settings</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.headerCard}>
+          <Text style={styles.eyebrow}>ACCOUNT</Text>
+          <Text style={styles.title}>{user?.name || 'Library Member'}</Text>
+          <Text style={styles.subtitle}>{user?.email || 'No email available'}</Text>
 
-      {/* Profile Card */}
-      <View style={styles.profileCard}>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{user?.name?.charAt(0).toUpperCase()}</Text>
+          <View style={styles.rolePill}>
+            <Text style={styles.rolePillText}>{role}</Text>
+          </View>
         </View>
-        <Text style={styles.name}>{user?.name}</Text>
-        <View style={styles.roleBadge}>
-          <Text style={styles.role}>{user?.role}</Text>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Profile Snapshot</Text>
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Name</Text>
+            <Text style={styles.infoValue}>{user?.name || 'Not set'}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue}>{user?.email || 'Not set'}</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Role</Text>
+            <Text style={styles.infoValue}>{role}</Text>
+          </View>
         </View>
-        <Text style={styles.email}>{user?.email}</Text>
-      </View>
 
-      {/* Admin Controls */}
-      {user?.role === "Super Admin" && (
-        <TouchableOpacity style={styles.adminCard} onPress={() => navigation.navigate('AddNewAdmin')}>
-          <Text style={styles.adminTitle}>🛡️ Admin Management</Text>
-          <Text style={styles.adminSub}>Add new system managers</Text>
-        </TouchableOpacity>
-      )}
-
-      {(user?.role === "Admin" || user?.role === "Super Admin") && (
-        <TouchableOpacity style={styles.adminCard} onPress={() => navigation.navigate('AllUsers')}>
-          <Text style={styles.adminTitle}>👥 Users Directory</Text>
-          <Text style={styles.adminSub}>Manage member records and roles</Text>
-        </TouchableOpacity>
-      )}
-
-      {/* Wallet / Fines */}
-      <View style={[styles.walletCard, user?.fines > 0 ? styles.walletDanger : styles.walletSafe]}>
-        <View>
-          <Text style={styles.walletTitle}>Library Wallet</Text>
-          <Text style={styles.walletSub}>{user?.fines > 0 ? 'Outstanding balance' : 'No pending liabilities'}</Text>
+        <View style={styles.walletCard}>
+          <Text style={styles.sectionTitle}>Library Wallet</Text>
+          <View style={styles.balanceRow}>
+            <View style={styles.balanceItem}>
+              <Text style={styles.balanceLabel}>Wallet Balance</Text>
+              <Text style={styles.balanceValue}>${walletBalance.toFixed(2)}</Text>
+            </View>
+            <View style={styles.balanceItem}>
+              <Text style={styles.balanceLabel}>Current Fines</Text>
+              <Text style={[styles.balanceValue, fineAmount > 0 && styles.fineValue]}>
+                ${fineAmount.toFixed(2)}
+              </Text>
+            </View>
+          </View>
+          <Text style={styles.walletHint}>
+            Fines and wallet values are synced from the backend account profile.
+          </Text>
         </View>
-        <Text style={[styles.walletAmount, user?.fines > 0 ? styles.textDanger : styles.textSafe]}>
-          ${user?.fines ? Number(user.fines).toFixed(2) : "0.00"}
-        </Text>
-      </View>
 
-      {/* Change Password */}
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>Security</Text>
-        <TextInput style={styles.input} placeholder="Current Password" secureTextEntry value={oldPassword} onChangeText={setOldPassword} />
-        <TextInput style={styles.input} placeholder="New Password" secureTextEntry value={newPassword} onChangeText={setNewPassword} />
-        <TouchableOpacity style={styles.btn} onPress={handleUpdatePassword} disabled={loading}>
-          {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.btnText}>Update Password</Text>}
-        </TouchableOpacity>
-      </View>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Security</Text>
 
-      {/* Logout */}
-      <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout}>
-        <Text style={styles.logoutText}>Logout</Text>
-      </TouchableOpacity>
-    </ScrollView>
+          <Text style={styles.inputLabel}>Current password</Text>
+          <TextInput
+            style={styles.input}
+            value={oldPassword}
+            onChangeText={setOldPassword}
+            placeholder="Enter current password"
+            placeholderTextColor={COLORS.text.secondary}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.inputLabel}>New password</Text>
+          <TextInput
+            style={styles.input}
+            value={newPassword}
+            onChangeText={setNewPassword}
+            placeholder="Enter new password"
+            placeholderTextColor={COLORS.text.secondary}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <Text style={styles.inputLabel}>Confirm new password</Text>
+          <TextInput
+            style={styles.input}
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
+            placeholder="Confirm new password"
+            placeholderTextColor={COLORS.text.secondary}
+            secureTextEntry
+            autoCapitalize="none"
+          />
+
+          <TouchableOpacity
+            style={[styles.primaryButton, isSubmittingPassword && styles.buttonDisabled]}
+            onPress={handleUpdatePassword}
+            disabled={isSubmittingPassword}
+          >
+            {isSubmittingPassword ? (
+              <ActivityIndicator color={COLORS.text.onBrand} size="small" />
+            ) : (
+              <Text style={styles.primaryButtonText}>Update Password</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+
+        {isAdmin && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Admin Tools</Text>
+
+            {isSuperAdmin && (
+              <TouchableOpacity
+                style={styles.secondaryButton}
+                onPress={() => navigation.navigate('AddNewAdmin')}
+              >
+                <Text style={styles.secondaryButtonText}>Create Admin Account</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        )}
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Session</Text>
+          <TouchableOpacity style={styles.dangerButton} onPress={handleLogout}>
+            <Text style={styles.dangerButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </ScrollView>
+    </SafeAreaView>
   );
-}
+};
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb', padding: 20 },
-  headerTitle: { fontSize: 28, fontWeight: 'bold', color: '#111', marginTop: 40, marginBottom: 20 },
-  profileCard: { backgroundColor: '#fff', padding: 20, borderRadius: 20, alignItems: 'center', elevation: 2, marginBottom: 20 },
-  avatar: { width: 80, height: 80, borderRadius: 40, backgroundColor: '#358a74', justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  avatarText: { fontSize: 32, color: '#fff', fontWeight: 'bold' },
-  name: { fontSize: 20, fontWeight: 'bold', color: '#111' },
-  roleBadge: { backgroundColor: '#ecfdf5', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10, marginTop: 8 },
-  role: { fontSize: 12, color: '#358a74', fontWeight: 'bold' },
-  email: { fontSize: 14, color: '#6b7280', marginTop: 10 },
- 
-  adminCard: { backgroundColor: '#ecfdf5', padding: 16, borderRadius: 16, marginBottom: 15, borderWidth: 1, borderColor: '#d1fae5', elevation: 1 },
-  adminTitle: { fontSize: 16, fontWeight: 'bold', color: '#065f46', marginBottom: 4 },
-  adminSub: { fontSize: 12, color: '#047857' },
-
-  walletCard: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, borderRadius: 16, marginBottom: 20, borderWidth: 1 },
-  walletSafe: { backgroundColor: '#f3f4f6', borderColor: '#e5e7eb' },
-  walletDanger: { backgroundColor: '#fffbeb', borderColor: '#fef3c7' },
-  walletTitle: { fontSize: 16, fontWeight: 'bold', color: '#111' },
-  walletSub: { fontSize: 12, marginTop: 4, color: '#6b7280' },
-  walletAmount: { fontSize: 24, fontWeight: '900' },
-  textSafe: { color: '#358a74' },
-  textDanger: { color: '#d97706' },
-  section: { backgroundColor: '#fff', padding: 20, borderRadius: 20, elevation: 2, marginBottom: 20 },
-  sectionTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15 },
-  input: { backgroundColor: '#f3f4f6', padding: 14, borderRadius: 12, marginBottom: 12 },
-  btn: { backgroundColor: '#358a74', padding: 14, borderRadius: 12, alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  logoutBtn: { padding: 16, alignItems: 'center', marginBottom: 40 },
-  logoutText: { color: '#ef4444', fontWeight: 'bold', fontSize: 16 }
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background.secondary,
+  },
+  content: {
+    padding: SPACING.xl,
+    gap: SPACING.lg,
+    paddingBottom: SPACING.xxxl,
+  },
+  headerCard: {
+    backgroundColor: COLORS.background.primary,
+    borderRadius: BORDER_RADIUS.xl,
+    padding: SPACING.lg,
+    ...SHADOWS.md,
+  },
+  eyebrow: {
+    color: COLORS.accent,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    letterSpacing: 1,
+    marginBottom: SPACING.xs,
+  },
+  title: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.xxxl,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  subtitle: {
+    color: COLORS.text.secondary,
+    marginTop: SPACING.xs,
+    fontSize: TYPOGRAPHY.sizes.md,
+  },
+  rolePill: {
+    alignSelf: 'flex-start',
+    marginTop: SPACING.md,
+    backgroundColor: `${COLORS.primary}15`,
+    borderColor: `${COLORS.primary}33`,
+    borderWidth: 1,
+    borderRadius: BORDER_RADIUS.pill,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.xs,
+  },
+  rolePillText: {
+    color: COLORS.primary,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    fontSize: TYPOGRAPHY.sizes.sm,
+  },
+  section: {
+    backgroundColor: COLORS.background.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    ...SHADOWS.sm,
+  },
+  sectionTitle: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.lg,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    marginBottom: SPACING.md,
+  },
+  infoRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: SPACING.sm,
+    gap: SPACING.md,
+  },
+  infoLabel: {
+    color: COLORS.text.secondary,
+    fontSize: TYPOGRAPHY.sizes.sm,
+  },
+  infoValue: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    flexShrink: 1,
+    textAlign: 'right',
+  },
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border.default,
+  },
+  walletCard: {
+    backgroundColor: COLORS.background.primary,
+    borderRadius: BORDER_RADIUS.lg,
+    padding: SPACING.lg,
+    borderWidth: 1,
+    borderColor: `${COLORS.accent}33`,
+    ...SHADOWS.sm,
+  },
+  balanceRow: {
+    flexDirection: 'row',
+    gap: SPACING.md,
+  },
+  balanceItem: {
+    flex: 1,
+    backgroundColor: COLORS.background.secondary,
+    borderRadius: BORDER_RADIUS.md,
+    padding: SPACING.md,
+  },
+  balanceLabel: {
+    color: COLORS.text.secondary,
+    fontSize: TYPOGRAPHY.sizes.xs,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  balanceValue: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.xl,
+    fontWeight: TYPOGRAPHY.weights.bold,
+    marginTop: SPACING.xs,
+  },
+  fineValue: {
+    color: COLORS.status.warning,
+  },
+  walletHint: {
+    color: COLORS.text.secondary,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    marginTop: SPACING.md,
+  },
+  inputLabel: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.sm,
+    fontWeight: TYPOGRAPHY.weights.medium,
+    marginBottom: SPACING.xs,
+    marginTop: SPACING.sm,
+  },
+  input: {
+    backgroundColor: COLORS.background.secondary,
+    borderWidth: 1,
+    borderColor: COLORS.border.default,
+    borderRadius: BORDER_RADIUS.md,
+    paddingHorizontal: SPACING.md,
+    paddingVertical: SPACING.sm,
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.md,
+  },
+  primaryButton: {
+    marginTop: SPACING.lg,
+    backgroundColor: COLORS.primary,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  primaryButtonText: {
+    color: COLORS.text.onBrand,
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  secondaryButton: {
+    borderWidth: 1,
+    borderColor: COLORS.border.default,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+    marginBottom: SPACING.sm,
+    backgroundColor: COLORS.background.secondary,
+  },
+  secondaryButtonText: {
+    color: COLORS.text.primary,
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.medium,
+  },
+  dangerButton: {
+    backgroundColor: COLORS.brand.danger,
+    borderRadius: BORDER_RADIUS.md,
+    paddingVertical: SPACING.md,
+    alignItems: 'center',
+  },
+  dangerButtonText: {
+    color: COLORS.text.onDanger,
+    fontSize: TYPOGRAPHY.sizes.md,
+    fontWeight: TYPOGRAPHY.weights.bold,
+  },
+  buttonDisabled: {
+    opacity: 0.7,
+  },
 });
+
+export default SettingsScreen;

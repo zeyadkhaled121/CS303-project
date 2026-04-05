@@ -25,7 +25,7 @@ export default function ForgetPasswordScreen({ navigation }) {
 
     setLoading(true);
     try {
-      await API.post('/auth/forgot-password', { email });
+      await API.post('/api/v1/user/password/forgot', { email });
 
       Toast.show({ type: 'success', text1: 'Reset link sent', text2: 'Check your email for the OTP or reset link.' });
       navigation.navigate('OTP', { email });

@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, TextInput, StyleSheet } from 'react-native';
+import { COLORS } from '../../shared/designTokens';
 
 export default function SearchBar({ value, onChangeText, placeholder = 'Search books...' }) {
   return (
@@ -21,12 +22,12 @@ const styles = StyleSheet.create({
     marginVertical: 10,
   },
   input: {
-    backgroundColor: '#fff',
+    backgroundColor: COLORS.background.primary,
     borderRadius: 10,
     paddingHorizontal: 14,
     paddingVertical: 10,
     borderWidth: 1,
-    borderColor: '#e6eef0',
+    borderColor: COLORS.border.default,
     fontSize: 15,
   },
 });

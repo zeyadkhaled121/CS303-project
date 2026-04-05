@@ -1,7 +1,8 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, FlatList, StyleSheet } from 'react-native';
+import { COLORS } from '../../shared/designTokens';
 
-export default function CategoryList({ categories = [], onSelectCategory }) {
+export default function CategoryList({ categories = [], onSelectCategory, selectedCategory = 'All' }) {
   return (
     <View style={styles.container}>
       <FlatList
@@ -10,8 +11,14 @@ export default function CategoryList({ categories = [], onSelectCategory }) {
         data={categories}
         keyExtractor={(item) => item}
         renderItem={({ item }) => (
-          <TouchableOpacity style={styles.chip} onPress={() => onSelectCategory(item)}>
-            <Text style={styles.chipText}>{item}</Text>
+          <TouchableOpacity
+            style={[styles.chip, selectedCategory === item && styles.chipActive]}
+            onPress={() => onSelectCategory(item)}
+            activeOpacity={0.9}
+          >
+            <Text style={[styles.chipText, selectedCategory === item && styles.chipTextActive]}>
+              {item}
+            </Text>
           </TouchableOpacity>
         )}
       />
@@ -21,19 +28,29 @@ export default function CategoryList({ categories = [], onSelectCategory }) {
 
 const styles = StyleSheet.create({
   container: {
-    marginVertical: 8,
+    marginBottom: 10,
   },
   chip: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    backgroundColor: COLORS.background.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     marginRight: 10,
-    borderRadius: 20,
+    borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#e6eef0',
+    borderColor: COLORS.neutral[200],
+  },
+  chipActive: {
+    backgroundColor: COLORS.brand.primary,
+    borderColor: COLORS.brand.primary,
   },
   chipText: {
-    color: '#333',
-    fontWeight: '600',
+    color: COLORS.text.secondary,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    fontSize: 11,
+  },
+  chipTextActive: {
+    color: COLORS.text.onBrand,
   },
 });
