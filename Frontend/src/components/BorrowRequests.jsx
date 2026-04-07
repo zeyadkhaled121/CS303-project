@@ -28,6 +28,8 @@ import {
 import { EmptyState, TableLoadingRow } from "./UITemplates";
 import ReportIssuePopup from "../popups/ReportIssuePopup";
 import ApproveRequestPopup from "../popups/ApproveRequestPopup";
+import RejectRequestPopup from "../popups/RejectRequestPopup";
+import ReturnConfirmPopup from "../popups/ReturnConfirmPopup";
 
 const BorrowRequestsV2 = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
@@ -42,6 +44,10 @@ const BorrowRequestsV2 = ({ searchTerm = "" }) => {
   const [selectedBorrowRecord, setSelectedBorrowRecord] = useState(null);
   const [approvePopupOpen, setApprovePopupOpen] = useState(false);
   const [itemToApprove, setItemToApprove] = useState(null);
+  const [rejectPopupOpen, setRejectPopupOpen] = useState(false);
+  const [itemToReject, setItemToReject] = useState(null);
+  const [returnPopupOpen, setReturnPopupOpen] = useState(false);
+  const [itemToReturn, setItemToReturn] = useState(null);
 
   useEffect(() => {
     dispatch(fetchAllBorrowedBooks());
@@ -230,12 +236,20 @@ const handleApprove = (item) => {
   };
 
   // Handle return action with proper validation
-  const handleReturn = async (item) => {
+  const handleReturn = (item) => {
     if (!item._id && !item.id) {
       notifyError("Invalid borrow record ID");
       return;
     }
+    setItemToReturn(item);
+    setReturnPopupOpen(true);
+  };
 
+  const confirmReturn = async () => {
+    const item = itemToReturn;
+    if (!item) return;
+
+    setReturnPopupOpen(false);
     setProcessingId(item._id || item.id);
     try {
       await dispatch(
@@ -246,26 +260,36 @@ const handleApprove = (item) => {
       notifyError("Failed to return book");
     } finally {
       setProcessingId(null);
+      setItemToReturn(null);
     }
   };
 
   // Handle reject action
-  const handleReject = async (item) => {
+  const handleReject = (item) => {
     if (!item._id && !item.id) {
       notifyError("Invalid borrow record ID");
       return;
     }
+    setItemToReject(item);
+    setRejectPopupOpen(true);
+  };
 
+  const confirmReject = async (reason) => {
+    const item = itemToReject;
+    if (!item) return;
+
+    setRejectPopupOpen(false);
     setProcessingId(item._id || item.id);
     try {
       await dispatch(
-        rejectBorrow(item._id || item.id, "Rejected by admin")
+        rejectBorrow(item._id || item.id, reason)
       );
     } catch (err) {
       console.error("Reject error:", err);
       notifyError("Failed to reject request");
     } finally {
       setProcessingId(null);
+      setItemToReject(null);
     }
   };
 
@@ -673,6 +697,27 @@ const handleApprove = (item) => {
           setItemToApprove(null);
         }}
         onConfirm={confirmApprove}
+      />
+
+      {/* Reject Request Popup */}
+      <RejectRequestPopup
+        isOpen={rejectPopupOpen}
+        onClose={() => {
+          setRejectPopupOpen(false);
+          setItemToReject(null);
+        }}
+        onConfirm={confirmReject}
+      />
+
+      {/* Return Confirm Popup */}
+      <ReturnConfirmPopup
+        isOpen={returnPopupOpen}
+        onClose={() => {
+          setReturnPopupOpen(false);
+          setItemToReturn(null);
+        }}
+        onConfirm={confirmReturn}
+        item={itemToReturn}
       />
     </div>
   );

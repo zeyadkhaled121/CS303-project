@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import { 
@@ -7,11 +7,14 @@ import {
 } from "react-icons/fa";
 import { approveBorrow, rejectBorrow, fetchAllBorrowedBooks } from "../store/slices/borrowSlice";
 import { toast } from "react-toastify";
+import RejectRequestPopup from "../popups/RejectRequestPopup";
 
 const UserProfile = () => {
   const { userId } = useParams(); 
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  const [rejectPopupOpen, setRejectPopupOpen] = useState(false);
 
   // Get data from Redux Store
   const { allUsers } = useSelector((state) => state.auth);
@@ -51,9 +54,16 @@ const UserProfile = () => {
   };
 
   // Rejection Logic
-  const handleReject = () => {
+  const handleRejectClick = () => {
     if (pendingRequest) {
-      dispatch(rejectBorrow(pendingRequest._id));
+      setRejectPopupOpen(true);
+    }
+  };
+
+  const confirmReject = (reason) => {
+    if (pendingRequest) {
+      setRejectPopupOpen(false);
+      dispatch(rejectBorrow(pendingRequest._id, reason));
       navigate(-1);
     }
   };
@@ -127,7 +137,7 @@ const UserProfile = () => {
                     </button>
                     <button 
                       disabled={loading}
-                      onClick={handleReject}
+                      onClick={handleRejectClick}
                       className="flex-1 py-4 bg-white border border-rose-100 text-rose-500 rounded-2xl text-[11px] font-black uppercase tracking-widest flex items-center justify-center gap-3 hover:bg-rose-50 transition-all"
                     >
                       <FaTimesCircle size={14} />
@@ -175,6 +185,11 @@ const UserProfile = () => {
 
         </div>
       </div>
+      <RejectRequestPopup
+        isOpen={rejectPopupOpen}
+        onClose={() => setRejectPopupOpen(false)}
+        onConfirm={confirmReject}
+      />
     </div>
   );
 };
