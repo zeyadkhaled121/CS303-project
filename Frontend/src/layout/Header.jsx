@@ -1,5 +1,17 @@
-import React, { useState, useRef, useEffect, useCallback } from "react";
-import { FaSearch, FaChevronDown, FaUserAlt, FaSignOutAlt, FaBell, FaInbox } from "react-icons/fa";
+import React, { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import {
+  FaSearch,
+  FaChevronDown,
+  FaUserAlt,
+  FaSignOutAlt,
+  FaBell,
+  FaInbox,
+  FaCheckCircle,
+  FaExclamationTriangle,
+  FaInfoCircle,
+  FaArrowRight,
+  FaTimes,
+} from "react-icons/fa";
 import { useSelector, useDispatch } from "react-redux";
 import { useNavigate, useLocation } from "react-router-dom";
 import { logout } from "../store/slices/authSlice";
@@ -20,29 +32,156 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
   const eventSourceRef = useRef(null);
   
   const { isAuthenticated, user } = useSelector((state) => state.auth);
-  const { allBorrowedBooks } = useSelector((state) => state.borrow || { allBorrowedBooks: [] });
 
   // Notifications State for User and Admin
   const [realNotifications, setRealNotifications] = useState([]);
   const [unreadNotiCount, setUnreadNotiCount] = useState(0);
+  const [livePopups, setLivePopups] = useState([]);
 
-  const fetchNotifications = async () => {
+  const seenNotificationIdsRef = useRef(new Set());
+  const initializedNotificationsRef = useRef(false);
+  const popupTimeoutsRef = useRef(new Map());
+
+  const clearPopupTimer = useCallback((notificationId) => {
+    const timeoutId = popupTimeoutsRef.current.get(notificationId);
+    if (timeoutId) {
+      clearTimeout(timeoutId);
+      popupTimeoutsRef.current.delete(notificationId);
+    }
+  }, []);
+
+  const dismissLivePopup = useCallback((notificationId) => {
+    clearPopupTimer(notificationId);
+    setLivePopups((prev) => prev.filter((popup) => popup._id !== notificationId));
+  }, [clearPopupTimer]);
+
+  const getNotificationTimeMs = useCallback((value) => {
+    if (!value) return Date.now();
+    if (typeof value === "object" && value._seconds) {
+      return value._seconds * 1000;
+    }
+    const parsed = new Date(value).getTime();
+    return Number.isNaN(parsed) ? Date.now() : parsed;
+  }, []);
+
+  const formatNotificationTime = useCallback((value) => {
+    return new Date(getNotificationTimeMs(value)).toLocaleString();
+  }, [getNotificationTimeMs]);
+
+  const getNotificationTone = (item) => {
+    const severity = String(item?.severity || "info").toLowerCase();
+    const type = String(item?.type || "").toUpperCase();
+
+    if (
+      severity === "warning" ||
+      severity === "alert" ||
+      type.includes("REJECT") ||
+      type.includes("ISSUE") ||
+      type.includes("OVERDUE")
+    ) {
+      return {
+        icon: <FaExclamationTriangle size={12} />,
+        iconClass: "bg-rose-50 text-rose-600 ring-1 ring-rose-100",
+        badgeClass: "bg-rose-50 text-rose-700",
+      };
+    }
+
+    if (
+      severity === "success" ||
+      type.includes("APPROVED") ||
+      type.includes("RETURNED") ||
+      type.includes("RECORDED")
+    ) {
+      return {
+        icon: <FaCheckCircle size={12} />,
+        iconClass: "bg-emerald-50 text-emerald-600 ring-1 ring-emerald-100",
+        badgeClass: "bg-emerald-50 text-emerald-700",
+      };
+    }
+
+    return {
+      icon: <FaInfoCircle size={12} />,
+      iconClass: "bg-sky-50 text-sky-600 ring-1 ring-sky-100",
+      badgeClass: "bg-sky-50 text-sky-700",
+    };
+  };
+
+  const spawnLivePopup = useCallback((notification) => {
+    if (!notification?._id || notification.read) return;
+
+    setLivePopups((prev) => {
+      if (prev.some((popup) => popup._id === notification._id)) {
+        return prev;
+      }
+      return [notification, ...prev].slice(0, 3);
+    });
+
+    clearPopupTimer(notification._id);
+    const timeoutId = setTimeout(() => {
+      dismissLivePopup(notification._id);
+    }, 8000);
+    popupTimeoutsRef.current.set(notification._id, timeoutId);
+  }, [clearPopupTimer, dismissLivePopup]);
+
+  const pushIncomingNotification = useCallback((notification) => {
+    if (!notification?._id) return;
+
+    const alreadyKnown = seenNotificationIdsRef.current.has(notification._id);
+    seenNotificationIdsRef.current.add(notification._id);
+
+    setRealNotifications((prev) => {
+      const withoutDuplicate = prev.filter((item) => item._id !== notification._id);
+      return [notification, ...withoutDuplicate].slice(0, 30);
+    });
+
+    if (!alreadyKnown && !notification.read) {
+      setUnreadNotiCount((prev) => prev + 1);
+      spawnLivePopup(notification);
+    }
+  }, [spawnLivePopup]);
+
+  const fetchNotifications = useCallback(async (options = {}) => {
+    const { showIncomingPopup = false } = options;
+
     try {
-      const res = await api.get('/api/v1/notifications');
+      const res = await api.get("/api/v1/notifications");
       if (res.data?.success) {
-          const newNotifs = res.data.data.notifications || [];
-          const newCount = res.data.data.unreadCount || 0;
-          
-          // SURGICAL FIX: Prevent deep React re-renders every 2.5s by comparing references
-          setRealNotifications(prev => 
-            JSON.stringify(prev) === JSON.stringify(newNotifs) ? prev : newNotifs
-          );
-          setUnreadNotiCount(prev => prev === newCount ? prev : newCount);
+        const newNotifs = res.data.data.notifications || [];
+        const newCount = res.data.data.unreadCount || 0;
+
+        setRealNotifications((prev) => (
+          JSON.stringify(prev) === JSON.stringify(newNotifs) ? prev : newNotifs
+        ));
+        setUnreadNotiCount((prev) => (prev === newCount ? prev : newCount));
+
+        if (!initializedNotificationsRef.current) {
+          initializedNotificationsRef.current = true;
+          newNotifs.forEach((item) => {
+            if (item?._id) {
+              seenNotificationIdsRef.current.add(item._id);
+            }
+          });
+          return;
+        }
+
+        const freshNotifications = [];
+        newNotifs.forEach((item) => {
+          if (!item?._id) return;
+          const isKnown = seenNotificationIdsRef.current.has(item._id);
+          if (!isKnown && !item.read) {
+            freshNotifications.push(item);
+          }
+          seenNotificationIdsRef.current.add(item._id);
+        });
+
+        if (showIncomingPopup && freshNotifications.length > 0) {
+          freshNotifications.slice(0, 2).forEach((item) => spawnLivePopup(item));
+        }
       }
     } catch (e) {
-      console.error(e);
+      console.error("Failed to fetch notifications", e);
     }
-  };
+  }, [spawnLivePopup]);
 
   const buildNotificationStreamUrl = () => {
     const baseUrl = import.meta.env.VITE_API_BASE_URL || window.location.origin;
@@ -55,13 +194,28 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
+
+      popupTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      popupTimeoutsRef.current.clear();
+      initializedNotificationsRef.current = false;
+      seenNotificationIdsRef.current = new Set();
+      setLivePopups([]);
+      setRealNotifications([]);
+      setUnreadNotiCount(0);
       return;
     }
 
     let fallbackInterval = null;
+    let reconcileInterval = null;
 
     const connectToNotificationStream = () => {
-      fetchNotifications();
+      fetchNotifications({ showIncomingPopup: false });
+
+      // Safety net: reconcile notification list frequently even when SSE is connected.
+      // This avoids missed updates when network intermediaries drop events silently.
+      reconcileInterval = setInterval(() => {
+        fetchNotifications({ showIncomingPopup: true });
+      }, 4000);
 
       try {
         const stream = new EventSource(buildNotificationStreamUrl(), {
@@ -77,23 +231,35 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
           }
         });
 
-        stream.addEventListener("notification_changed", () => {
-          fetchNotifications();
+        stream.addEventListener("notification_changed", (event) => {
+          let payload = {};
+          try {
+            payload = JSON.parse(event?.data || "{}");
+          } catch {
+            payload = {};
+          }
+
+          if (payload?.reason === "created" && payload?.notification?._id) {
+            pushIncomingNotification(payload.notification);
+            return;
+          }
+
+          fetchNotifications({ showIncomingPopup: false });
         });
 
         stream.onerror = () => {
           if (!fallbackInterval) {
             fallbackInterval = setInterval(() => {
-              fetchNotifications();
-            }, 30000);
+              fetchNotifications({ showIncomingPopup: true });
+            }, 5000);
           }
         };
       } catch (error) {
         console.error("Notification stream failed, fallback polling enabled", error);
         if (!fallbackInterval) {
           fallbackInterval = setInterval(() => {
-            fetchNotifications();
-          }, 30000);
+            fetchNotifications({ showIncomingPopup: true });
+          }, 5000);
         }
       }
     };
@@ -104,18 +270,30 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
       if (fallbackInterval) {
         clearInterval(fallbackInterval);
       }
+      if (reconcileInterval) {
+        clearInterval(reconcileInterval);
+      }
       if (eventSourceRef.current) {
         eventSourceRef.current.close();
         eventSourceRef.current = null;
       }
     };
-  }, [isAuthenticated, user]);
+  }, [isAuthenticated, user, fetchNotifications, pushIncomingNotification]);
+
+  useEffect(() => {
+    const popupTimeouts = popupTimeoutsRef.current;
+
+    return () => {
+      popupTimeouts.forEach((timeoutId) => clearTimeout(timeoutId));
+      popupTimeouts.clear();
+    };
+  }, []);
 
   const markAsRead = async (id, e) => {
     if (e) e.stopPropagation();
     try {
       await api.put(`/api/v1/notifications/${id}/read`);
-      fetchNotifications();
+      fetchNotifications({ showIncomingPopup: false });
     } catch (err) {
       console.error("Failed to mark notification as read", err);
     }
@@ -124,7 +302,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
   const markAllAsRead = async () => {
     try {
       await api.put('/api/v1/notifications/read-all');
-      fetchNotifications();
+      fetchNotifications({ showIncomingPopup: false });
     } catch (err) {
       console.error("Failed to mark all notifications as read", err);
     }
@@ -134,7 +312,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
     if (e) e.stopPropagation();
     try {
       await api.delete(`/api/v1/notifications/${id}`);
-      fetchNotifications();
+      fetchNotifications({ showIncomingPopup: false });
     } catch (err) {
       console.error("Failed to delete notification", err);
     }
@@ -160,23 +338,58 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
     navigateTo("/");
   };
 
-  // Throttle notification bell click to prevent race conditions
-  const throttledNotiClick = useCallback(
-    throttle(() => {
-      setNotiOpen(prev => !prev);
-    }, 300),
-    []
-  );
+  // Throttle notification toggles to prevent rapid double-triggering.
+  const throttledNotiClick = useMemo(() => {
+    return throttle(() => {
+      setNotiOpen((prev) => !prev);
+    }, 300);
+  }, []);
 
-  const throttledDropdownClick = useCallback(
-    throttle(() => {
-      setDropdownOpen(prev => !prev);
-    }, 300),
-    []
-  );
+  const throttledDropdownClick = useMemo(() => {
+    return throttle(() => {
+      setDropdownOpen((prev) => !prev);
+    }, 300);
+  }, []);
+
+  const handleNotificationNavigation = useCallback((item) => {
+    if (!item?.actionUrl) return;
+
+    setNotiOpen(false);
+
+    if (item.actionUrl === "/borrow/all" || item.actionUrl === "/my-borrowings") {
+      setSelectedComponent(user?.role === "User" ? "My Borrowed Books" : "BorrowRequests");
+    }
+
+    if (item.actionUrl === "/borrow-requests" || item.actionUrl === "/admin/borrowLogistics") {
+      setSelectedComponent("BorrowRequests");
+    }
+
+    navigateTo(
+      item.actionUrl === "/borrow/all" ||
+      item.actionUrl === "/my-borrowings" ||
+      item.actionUrl === "/admin/borrowLogistics"
+        ? "/"
+        : item.actionUrl
+    );
+  }, [navigateTo, setSelectedComponent, user?.role]);
+
+  const handleNotificationClick = (item) => {
+    if (!item) return;
+    if (!item.read) {
+      markAsRead(item._id, { stopPropagation: () => {} });
+    }
+    handleNotificationNavigation(item);
+  };
+
+  const viewerRoleLabel = user?.role === "Super Admin"
+    ? "Super Admin Console"
+    : user?.role === "Admin"
+      ? "Admin Console"
+      : "Member Portal";
 
   return (
-    <header className="fixed top-0 left-0 w-full bg-[#358a74] py-3 px-8 flex items-center justify-between z-50 h-20 shadow-2xl font-sans">
+    <>
+      <header className="fixed top-0 left-0 w-full bg-[#358a74] py-3 px-8 flex items-center justify-between z-50 h-20 shadow-2xl font-sans">
       
       {/* --- Logo Section --- */}
       <div className="flex items-center h-full">
@@ -252,15 +465,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
                         realNotifications.map((item) => (
                           <div
                             key={item._id}
-                            onClick={() => {
-                              if (!item.read) markAsRead(item._id, { stopPropagation: () => {} });
-                              if (item.actionUrl) {
-                                setNotiOpen(false);
-                                  if (item.actionUrl === "/borrow/all" || item.actionUrl === "/my-borrowings") setSelectedComponent(user.role === "User" ? "My Borrowed Books" : "BorrowRequests");
-                                  if (item.actionUrl === "/borrow-requests" || item.actionUrl === "/admin/borrowLogistics") setSelectedComponent('BorrowRequests');
-                                  navigateTo(item.actionUrl === "/borrow/all" || item.actionUrl === "/my-borrowings" || item.actionUrl === "/admin/borrowLogistics" ? "/" : item.actionUrl);
-                              }
-                            }}
+                            onClick={() => handleNotificationClick(item)}
                             className={`p-6 border-b border-gray-50 hover:bg-emerald-50/50 cursor-pointer transition-all flex flex-col gap-2 group ${!item.read ? 'bg-emerald-50/20' : ''}`}
                           >
                             <div className="flex justify-between items-start w-full">
@@ -271,11 +476,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
                             </div>
                             <div className="flex justify-between items-center mt-2">
                               <span className="text-[10px] font-bold text-gray-400">
-                                {(() => {
-                                  const dt = item.createdAt;
-                                  if (dt && dt._seconds) return new Date(dt._seconds * 1000).toLocaleString();
-                                  return dt ? new Date(dt).toLocaleString() : "Recently";
-                                })()}
+                                {formatNotificationTime(item.createdAt)}
                               </span>
                               <div className="flex gap-3">
                                 {!item.read && (
@@ -348,6 +549,67 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
         )}
       </div>
     </header>
+
+      {isAuthenticated && livePopups.length > 0 && (
+        <div className="fixed top-24 right-6 z-[90] flex w-[380px] max-w-[calc(100vw-1.5rem)] flex-col gap-3">
+          {livePopups.map((item) => {
+            const tone = getNotificationTone(item);
+            return (
+              <div key={item._id} className="notification-popup-card notification-popup-enter">
+                <div className="absolute inset-x-0 top-0 h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500" />
+                <div className="flex items-start gap-3 p-4 pt-5">
+                  <div className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl ${tone.iconClass}`}>
+                    {tone.icon}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="mb-1 flex items-center justify-between gap-2">
+                      <p className="truncate text-[11px] font-black uppercase tracking-[0.14em] text-slate-400">
+                        {item.title || "New Notification"}
+                      </p>
+                      <span className={`shrink-0 rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-wider ${tone.badgeClass}`}>
+                        {viewerRoleLabel}
+                      </span>
+                    </div>
+                    <p className="text-[13px] font-bold leading-snug text-slate-800">
+                      {item.message || "You have a new update."}
+                    </p>
+                    <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.12em] text-slate-400">
+                      {formatNotificationTime(item.createdAt)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => dismissLivePopup(item._id)}
+                    className="rounded-lg p-1.5 text-slate-400 transition-all hover:bg-slate-100 hover:text-slate-600"
+                    aria-label="Dismiss notification popup"
+                  >
+                    <FaTimes size={11} />
+                  </button>
+                </div>
+
+                {item.actionUrl && (
+                  <div className="px-4 pb-4">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (!item.read) {
+                          markAsRead(item._id);
+                        }
+                        dismissLivePopup(item._id);
+                        handleNotificationNavigation(item);
+                      }}
+                      className="notification-popup-action"
+                    >
+                      Open Details <FaArrowRight size={10} />
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </>
   );
 };
 

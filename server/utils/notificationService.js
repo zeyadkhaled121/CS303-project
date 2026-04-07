@@ -16,16 +16,22 @@ export const createInAppNotification = async (notificationData, retentionDays = 
     }
 
     const now = new Date();
-    const result = await db.collection("notifications").add({
+    const createdNotification = {
       ...notificationData,
       read: false,
       createdAt: now,
       expiresAt: new Date(now.getTime() + retentionDays * 24 * 60 * 60 * 1000)
-    });
+    };
+
+    const result = await db.collection("notifications").add(createdNotification);
 
     publishNotificationEvent(notificationData.userId, "notification_changed", {
       reason: "created",
-      notificationId: result.id
+      notificationId: result.id,
+      notification: {
+        _id: result.id,
+        ...createdNotification
+      }
     });
 
     return result;

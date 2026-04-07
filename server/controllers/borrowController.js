@@ -61,6 +61,15 @@ const getAdminName = async (adminId) => {
   }
 };
 
+const isAdminLikeRole = (roleValue) => {
+  const normalizedRole = String(roleValue || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s_-]+/g, "");
+
+  return normalizedRole === "admin" || normalizedRole === "superadmin";
+};
+
 // REMOVED: executeTransactionWithAudit - not needed, we handle audit after transaction in each function
 
 // ===== 1. REQUEST BORROW =====
@@ -173,23 +182,58 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
       actionUrl: "/my-borrowings"
     });
 
-      // Notify all admins of the new request (ADMIN NOTIFICATION SYSTEM)
+      // Notify all admin-level users (Admin + Super Admin) of the new request.
       try {
-        const adminsSnapshot = await db.collection("users").where("role", "==", "admin").get();
-        const notificationPromises = adminsSnapshot.docs.map(adminDoc => {
-          return createInAppNotification({
-            userId: adminDoc.id,
-            type: "ADMIN_ALERT_NEW_REQUEST",
-            title: "New Borrow Request",
-            message: `${userName} has requested to borrow "${bookDataForAudit.title}".`,
-            actionUrl: "/admin/borrowLogistics",
-            borrowId: newBorrowId,
-            bookId,
-            actionRequired: true,
-            severity: "info"
+        const ADMIN_NOTIFICATION_ROLES = ["Admin", "Super Admin", "admin", "super admin", "superadmin"];
+        const directRoleSnapshot = await db
+          .collection("users")
+          .where("role", "in", ADMIN_NOTIFICATION_ROLES)
+          .get();
+
+        let adminDocs = directRoleSnapshot.docs;
+
+        // Fallback for legacy/dirty role values (e.g., mixed casing, spacing, typos).
+        // This ensures admin alerts are not silently dropped in multi-device scenarios.
+        if (adminDocs.length === 0) {
+          const verifiedUsersSnapshot = await db
+            .collection("users")
+            .where("accountVerified", "==", true)
+            .get();
+
+          adminDocs = verifiedUsersSnapshot.docs.filter((doc) => {
+            const data = doc.data() || {};
+            return isAdminLikeRole(data.role);
           });
-        });
-        await Promise.all(notificationPromises);
+        }
+
+        const notificationPromises = adminDocs
+          .filter((adminDoc) => {
+            const adminData = adminDoc.data() || {};
+            return adminDoc.id !== userId && adminData.accountVerified !== false;
+          })
+          .map((adminDoc) => {
+            return createInAppNotification({
+              userId: adminDoc.id,
+              type: "ADMIN_ALERT_NEW_REQUEST",
+              title: "New Borrow Request",
+              message: `${userName} has requested to borrow "${bookDataForAudit.title}".`,
+              actionUrl: "/admin/borrowLogistics",
+              borrowId: newBorrowId,
+              bookId,
+              actionRequired: true,
+              severity: "info"
+            });
+          });
+
+        if (notificationPromises.length > 0) {
+          await Promise.all(notificationPromises);
+        } else {
+          console.warn("No eligible admin recipients found for BORROW_REQUEST notification", {
+            borrowId: newBorrowId,
+            requesterId: userId,
+            requesterEmail: userEmail
+          });
+        }
       } catch (adminNotifError) {
         console.error("Failed to send admin notifications for new borrow request:", adminNotifError);
       }
