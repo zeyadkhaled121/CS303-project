@@ -69,3 +69,21 @@ export function generateOverdueWarningEmailTemplate(bookTitle, dueDate) {
     </div>
 </div>`;
 }
+
+export function generateFineWarningEmailTemplate(amount, totalFines) {
+    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #ef4444; text-align: center;">Fine Assessed on Your Account</h2>
+    <p>A fine of <strong>${amount} EGP</strong> has been added to your account for overdue items.</p>
+    <p>Your total outstanding fines are now <strong>${totalFines} EGP</strong>.</p>
+    <p>Please pay your fines to restore full borrowing privileges.</p>
+</div>`;
+}
+
+export function generateBanNoticeEmailTemplate() {
+    return `<div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+    <h2 style="color: #ef4444; text-align: center;">Account Temporarily Banned</h2>
+    <p>Due to repeated violations or excessive unpaid fines, your account has been placed on hold.</p>
+    <p>You may not borrow any new items until your account is reinstated by an administrator.</p>
+    <p>Please contact support or pay any outstanding fines immediately.</p>
+</div>`;
+}

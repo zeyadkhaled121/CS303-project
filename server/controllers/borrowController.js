@@ -3,40 +3,6 @@ import { catchAsyncErrors } from "../middlewares/catchAsyncErrors.js";
 import ErrorHandler from "../middlewares/errorMiddlewares.js";
 import { createInAppNotification } from "../utils/notificationService.js";
 
-/**
- * BORROW CONTROLLER
- * Handles all borrowing operations with atomic transactions and bug fixes
- * 
- * All 9 critical bugs are integrated:
- * - Bug 2: Audit logs written AFTER transaction commits
- * - Bug 3: report-issue uses status directly (no audit log race)
- * - Bug 7: requestBorrow wrapped in transaction (no duplicate race)
- * - Bug 8: availableCopies floor guard (reject if < 1)
- * - Bug 9: borrowedBooks array updated in same transaction
- * - Additional Bug: reportIssue now transactional (prevents race on availableCopies)
- * - Additional Bug: Pagination logic fixed (count before pagination)
- * - Additional Bug: Duplicate prevention in borrowedBooks array
- * 
- * ===== REQUIRED FIRESTORE INDEXES =====
- * These indexes MUST be created in Firebase Console or queries will fail:
- * 
- * 1. Collection: borrow
- *    Fields: user._id (Ascending), requestDate (Descending)
- *    Purpose: getMyBorrowings query
- * 
- * 2. Collection: borrow
- *    Fields: status (Ascending), requestDate (Descending)
- *    Purpose: getAllBorrowings with status filter
- * 
- * 3. Collection: borrow
- *    Fields: user._id (Ascending), status (Ascending)
- *    Purpose: Duplicate check in requestBorrow
- * 
- * Create these manually in Firebase Console → Firestore Database → Indexes
- * Or the system will throw "FAILED_PRECONDITION" errors in production
- */
-
-// ===== HELPER: Create Audit Log (called AFTER transaction commits) =====
 const createAuditLog = async (auditData) => {
   try {
     await db.collection("auditLogs").add({
@@ -46,11 +12,10 @@ const createAuditLog = async (auditData) => {
     });
   } catch (error) {
     console.error("Audit log write failed:", error);
-    // Don't throw - audit logs are non-blocking
   }
 };
 
-// ===== HELPER: Get Admin Name for Notifications =====
+//  Get Admin Name for Notifications =====
 const getAdminName = async (adminId) => {
   try {
     const adminDoc = await db.collection("users").doc(adminId).get();
@@ -70,10 +35,8 @@ const isAdminLikeRole = (roleValue) => {
   return normalizedRole === "admin" || normalizedRole === "superadmin";
 };
 
-// REMOVED: executeTransactionWithAudit - not needed, we handle audit after transaction in each function
 
 // ===== 1. REQUEST BORROW =====
-// BUG 7 FIX: Wrapped in transaction to prevent duplicate race condition
 export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
   const { bookId } = req.body;
   const userId = req.user.id;
@@ -85,7 +48,17 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
   }
 
   // ===== BLOCK OVERDUE USERS =====
-  // If the user has any book currently marked as 'Overdue', deny the request
+  const userDocRef = await db.collection("users").doc(userId).get();
+  if (userDocRef.exists) {
+    const userData = userDocRef.data();
+    if (userData.isBanned) {
+      return next(new ErrorHandler("ACCOUNT BANNED: You cannot borrow books due to multiple offenses or excessive fines.", 403));
+    }
+    if (userData.isFineRestricted) {
+      return next(new ErrorHandler("ACCOUNT RESTRICTED: Please pay your outstanding fines to resume borrowing.", 403));
+    }
+  }
+
   const overdueSnapshot = await db.collection("borrow")
     .where("user_id", "==", userId)
     .where("status", "==", "Overdue")
@@ -96,11 +69,20 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
     return next(new ErrorHandler("ACCOUNT BLOCKED: You have overdue items. You cannot borrow new books until you return them.", 403));
   }
 
+  // ===== 3 BOOKS LIMIT =====
+  const activeBorrowsSnapshot = await db.collection("borrow")
+    .where("user_id", "==", userId)
+    .where("status", "in", ["Pending", "Borrowed", "Overdue"])
+    .get();
+      
+  if (activeBorrowsSnapshot.size >= 3) {
+    return next(new ErrorHandler("BORROW LIMIT REACHED: You can only have up to 3 active books (Requests + Borrowed) at the same time.", 403));
+  }
+
   let newBorrowId;
-  let bookDataForAudit; // Store bookData for audit log (Fix for scope issue)
+  let bookDataForAudit; 
 
   try {
-    // ATOMIC TRANSACTION: Check duplicate + Decrement copies + Create record
     newBorrowId = await db.runTransaction(async (transaction) => {
       // 1. Check for existing active request (inside transaction - Bug 7)
       const duplicateSnapshot = await transaction.get(
@@ -123,9 +105,8 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
       }
 
       const bookData = bookDoc.data();
-      bookDataForAudit = bookData; // Store for use after transaction
+      bookDataForAudit = bookData; 
 
-      // BUG 8 FIX: Floor guard - check before decrementing
       if (!bookData.availableCopies || bookData.availableCopies <= 0) {
         throw new Error("No copies available for borrowing");
       }
@@ -161,8 +142,7 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
       return newBorrowRef.id;
     });
 
-    // AFTER transaction commits, write audit log (Bug 2)
-    // Use bookDataForAudit which was stored during transaction (Fix scope issue)
+    
     await createAuditLog({
       action: "BORROW_REQUEST",
       userId,
@@ -171,7 +151,6 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
       details: { bookId, bookTitle: bookDataForAudit.title }
     });
 
-    // NOTIFICATION ENHANCEMENT: Send confirmation to user that request was submitted
     await createInAppNotification({
       userId,
       type: "BORROW_REQUESTED",
@@ -192,8 +171,6 @@ export const requestBorrow = catchAsyncErrors(async (req, res, next) => {
 
         let adminDocs = directRoleSnapshot.docs;
 
-        // Fallback for legacy/dirty role values (e.g., mixed casing, spacing, typos).
-        // This ensures admin alerts are not silently dropped in multi-device scenarios.
         if (adminDocs.length === 0) {
           const verifiedUsersSnapshot = await db
             .collection("users")
@@ -255,7 +232,6 @@ export const getMyBorrowings = catchAsyncErrors(async (req, res, next) => {
   const { status, skip = 0, limit = 10 } = req.query;
 
   try {
-    // ✅ BULLETPROOF: Status enum validation (Principal Engineer Fix #1)
     const VALID_BORROW_STATUSES = ["Pending", "Borrowed", "Overdue", "Returned", "Lost", "Rejected", "Cancelled"];
     if (status && !VALID_BORROW_STATUSES.includes(status)) {
       return next(new ErrorHandler(`Invalid status. Must be one of: ${VALID_BORROW_STATUSES.join(", ")}`, 400));
@@ -267,7 +243,7 @@ export const getMyBorrowings = catchAsyncErrors(async (req, res, next) => {
       query = query.where("status", "==", status);
     }
 
-    // Get total count BEFORE pagination (FIXED for DB DoS)
+    // Get total count BEFORE pagination 
     const countSnapshot = await query.count().get();
     const total = countSnapshot.data().count;
 
@@ -295,12 +271,11 @@ export const getMyBorrowings = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ===== 3. CANCEL BORROW REQUEST =====
-// Only allowed for Pending status
 export const cancelBorrow = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const userId = req.user.id;
 
-  let bookIdForAudit; // Fix scope issue
+  let bookIdForAudit; 
 
   try {
     await db.runTransaction(async (transaction) => {
@@ -333,7 +308,7 @@ export const cancelBorrow = catchAsyncErrors(async (req, res, next) => {
         updatedAt: new Date()
       });
 
-      // Restore available copy (Fix inventory leak logic bomb)
+      // Restore available copy 
       if (bookDoc.exists) {
         const currentCopies = bookDoc.data().availableCopies;
         const totalCopies = bookDoc.data().totalCopies;
@@ -374,7 +349,6 @@ export const getAllBorrowings = catchAsyncErrors(async (req, res, next) => {
   const { status, userId, skip = 0, limit = 10 } = req.query;
 
   try {
-    // ✅ BULLETPROOF: Status enum validation (Principal Engineer Fix #2)
     const VALID_BORROW_STATUSES = ["Pending", "Borrowed", "Overdue", "Returned", "Lost", "Rejected", "Cancelled"];
     if (status && !VALID_BORROW_STATUSES.includes(status)) {
       return next(new ErrorHandler(`Invalid status. Must be one of: ${VALID_BORROW_STATUSES.join(", ")}`, 400));
@@ -390,7 +364,7 @@ export const getAllBorrowings = catchAsyncErrors(async (req, res, next) => {
       query = query.where("user_id", "==", userId);
     }
 
-    // Get total count BEFORE pagination (FIXED for DB DoS)
+    // Get total count BEFORE pagination 
     const countSnapshot = await query.count().get();
     const total = countSnapshot.data().count;
 
@@ -417,7 +391,7 @@ export const getAllBorrowings = catchAsyncErrors(async (req, res, next) => {
   }
 });
 
-// ===== 4.5. RECORD DIRECT BORROW =====
+// ===== 4 RECORD DIRECT BORROW =====
 // Admin assigns a book directly to a user
 export const recordDirectBorrow = catchAsyncErrors(async (req, res, next) => {
   const { userId, bookId, dueDate } = req.body;
@@ -561,7 +535,6 @@ export const recordDirectBorrow = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ===== 5. APPROVE BORROW REQUEST =====
-// BUG 2 & 9 FIX: Transaction for book + borrowRecord + user, audit after
 export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const { dueDate } = req.body;
@@ -582,7 +555,6 @@ export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
   let finalBorrowData; 
 
   try {
-    // ATOMIC TRANSACTION: Update book + borrowRecord + user (Bug 9)
     await db.runTransaction(async (transaction) => {
       const borrowRef = db.collection("borrow").doc(id);
       const borrowDoc = await transaction.get(borrowRef);
@@ -593,7 +565,7 @@ export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
 
       finalBorrowData = borrowDoc.data();
 
-      // Guard check INSIDE transaction (prevents race condition bypass)
+      //  (prevents race condition bypass)
       if (finalBorrowData.status !== "Pending") {
         throw new Error("Only Pending requests can be approved");
       }
@@ -602,18 +574,18 @@ export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
       const resolvedUserId = finalBorrowData.user_id || finalBorrowData?.user?._id || null;
       const userRef = resolvedUserId ? db.collection("users").doc(resolvedUserId) : null;
 
-      // READS FIRST (Firestore requirement)
+      // READS FIRST 
       const userDoc = userRef ? await transaction.get(userRef) : null;
       const currentBorrowed = userDoc?.exists ? (userDoc.data().borrowedBooks || []) : [];
 
       // THEN WRITES
-      // 1. Update book status (if needed)
+      // 1. Update book status 
       transaction.update(bookRef, {
         status: "Borrowed",
         updatedAt: new Date()
       });
 
-      // 2. Update borrowRecord: Pending → Borrowed (collapsed status)
+      // 2. Update borrowRecord
       transaction.update(borrowRef, {
         status: "Borrowed",
         dueDate: dueDateObj,
@@ -621,7 +593,7 @@ export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
         updatedAt: new Date()
       });
 
-      // 3. Update user.borrowedBooks array (Bug 9 - prevent duplicates)
+      // 3. Update user.borrowedBooks array 
       const updatedBorrowed = currentBorrowed.includes(finalBorrowData.book_id)
         ? currentBorrowed
         : [...currentBorrowed, finalBorrowData.book_id];
@@ -634,7 +606,6 @@ export const approveBorrow = catchAsyncErrors(async (req, res, next) => {
       }
     });
 
-    // AFTER transaction commits, write audit log and create notification (Bug 2)
     await createAuditLog({
       action: "BORROW_APPROVED",
       userId: adminId,
@@ -717,7 +688,7 @@ export const rejectBorrow = catchAsyncErrors(async (req, res, next) => {
         updatedAt: new Date()
       });
 
-      // Restore availableCopies (was decremented during requestBorrow)
+      // Restore availableCopies 
       if (bookDoc.exists) {
         const currentCopies = bookDoc.data().availableCopies;
         const totalCopies = bookDoc.data().totalCopies;
@@ -777,7 +748,6 @@ export const rejectBorrow = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ===== 7. CONFIRM RETURN =====
-// BUG 2 & 9 FIX: Transaction for book + borrowRecord + user, audit after
 export const confirmReturn = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const adminId = req.user.id;
@@ -835,7 +805,7 @@ export const confirmReturn = catchAsyncErrors(async (req, res, next) => {
         updatedAt: new Date()
       });
 
-      // 3. Remove from user.borrowedBooks (Bug 9)
+      // 3. Remove from user.borrowedBooks 
       if (userRef && userDoc?.exists) {
         transaction.update(userRef, {
           borrowedBooks: updatedBorrowed,
@@ -890,8 +860,6 @@ export const confirmReturn = catchAsyncErrors(async (req, res, next) => {
 });
 
 // ===== 8. REPORT ISSUE (Lost/Damaged) =====
-// BUG 3 FIX: Use current status directly (not audit log)
-// Now also transactional to prevent race conditions
 export const reportIssue = catchAsyncErrors(async (req, res, next) => {
   const { id } = req.params;
   const { issueType, remarks } = req.body; // issueType: "Lost" or "Damaged"
@@ -906,7 +874,7 @@ export const reportIssue = catchAsyncErrors(async (req, res, next) => {
   let finalBorrowData;
 
   try {
-    // ATOMIC TRANSACTION: Update borrow + book (prevent race on availableCopies decrement)
+    // ATOMIC TRANSACTION: Update borrow + book 
     await db.runTransaction(async (transaction) => {
       const borrowRef = db.collection("borrow").doc(id);
       const borrowDoc = await transaction.get(borrowRef);
@@ -927,8 +895,7 @@ export const reportIssue = catchAsyncErrors(async (req, res, next) => {
         throw new Error("Cannot report issue for a request with this status");
       }
 
-      // We have temporarily disabled monetary penalties for version 1
-      // They will be implemented in the future Fine system update.
+      
       let issueStatus = issueType === "Lost" ? "Lost" : "Damaged";
 
       const bookRef = db.collection("books").doc(finalBorrowData.book_id);
@@ -940,8 +907,7 @@ export const reportIssue = catchAsyncErrors(async (req, res, next) => {
         throw new Error("Cannot report issue: total copies already at 0");
       }
 
-      // If the item is still borrowed/overdue, it is already excluded from availableCopies.
-      // In that case only totalCopies should decrease (example: 1/2 -> 1/1).
+      
       const shouldReduceAvailable = currentStatus === "Returned";
       const nextAvailableCopies = shouldReduceAvailable
         ? Math.max(0, currentCopies - 1)
@@ -956,7 +922,7 @@ export const reportIssue = catchAsyncErrors(async (req, res, next) => {
         updatedAt: new Date()
       });
 
-      // Update book: decrement totalCopies (lost/damaged book is gone)
+      // Update book: decrement totalCopies 
       transaction.update(bookRef, {
         totalCopies: nextTotalCopies,
         availableCopies: nextAvailableCopies,

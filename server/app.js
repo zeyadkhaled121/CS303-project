@@ -9,6 +9,7 @@ import { errorMiddleware } from "./middlewares/errorMiddlewares.js";
 import authRouter from "./routes/authRouter.js";
 import bookRouter from "./routes/bookRouter.js";
 import borrowRouter from "./routes/borrowRouter.js";
+import fineRouter from "./routes/fineRouter.js";
 import notificationRouter from "./routes/notificationRouter.js";
 import fileUpload from "express-fileupload";
 
@@ -44,10 +45,9 @@ app.use(
 );
 
 app.use(cookieParser());
-app.use(express.json({ limit: '10kb' })); // Stops 10MB payload bombs
+app.use(express.json({ limit: '10kb' })); 
 app.use(express.urlencoded({ extended: true }));
 
-// Malformed JSON Error Handler
 app.use((err, req, res, next) => {
   if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
     return res.status(400).json({ success: false, message: "Malformed JSON payload detected. Request terminated." });
@@ -74,6 +74,7 @@ app.get("/api/v1/health", (req, res) => {
 app.use("/api/v1/user", authRouter);
 app.use("/api/v1/book", bookRouter);
 app.use("/api/v1/borrow", borrowRouter);
+app.use("/api", fineRouter);
 app.use("/api/v1/notifications", notificationRouter);
 
 app.all("*", (req, res) => {

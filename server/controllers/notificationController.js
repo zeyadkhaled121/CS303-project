@@ -43,7 +43,6 @@ export const streamNotifications = catchAsyncErrors(async (req, res) => {
 });
 
 // ===== 1. GET USER NOTIFICATIONS =====
-// Fetch user's notifications with pagination
 export const getNotifications = catchAsyncErrors(async (req, res, next) => {
   const userId = req.user.id;
   const { unreadOnly = false, skip = 0, limit = 10 } = req.query;
@@ -63,7 +62,7 @@ export const getNotifications = catchAsyncErrors(async (req, res, next) => {
       baseQuery.where("read", "==", false).count().get()
     ]);
 
-    const total = 0; // Deprecated full collection count
+    const total = 0; 
     const unreadCount = unreadSnap.data().count;
 
     // Apply pagination and ordering
@@ -135,7 +134,6 @@ export const markAsRead = catchAsyncErrors(async (req, res, next) => {
 
     const notificationData = notificationDoc.data();
 
-    // Security: Only owner can mark their own notification as read
     if (notificationData.userId !== userId) {
       return next(new ErrorHandler("Unauthorized", 403));
     }
@@ -236,7 +234,6 @@ export const deleteNotification = catchAsyncErrors(async (req, res, next) => {
 
     const notificationData = notificationDoc.data();
 
-    // Security: Only owner can delete their own notification
     if (notificationData.userId !== userId) {
       return next(new ErrorHandler("Unauthorized", 403));
     }
@@ -279,7 +276,6 @@ export const deleteAllNotifications = catchAsyncErrors(async (req, res, next) =>
       });
     }
 
-    // Batch delete all notifications
     const batches = [];
     let currentBatch = db.batch();
     let currentBatchSize = 0;

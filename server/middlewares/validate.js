@@ -10,8 +10,7 @@ const BorrowRequestSchema = z.object({
     .refine((val) => val.trim().length > 0, "Book ID cannot be empty")
 });
 
-// Schema for approveBorrow endpoint
-// Body: { dueDate }
+
 const ApproveBorrowSchema = z.object({
   dueDate: z
     .string()
@@ -22,8 +21,6 @@ const ApproveBorrowSchema = z.object({
     )
 });
 
-// Schema for rejectBorrow endpoint
-// Body: { remarks }
 const RejectBorrowSchema = z.object({
   remarks: z
     .string()
@@ -33,8 +30,6 @@ const RejectBorrowSchema = z.object({
     .transform((val) => sanitizeHTML(val)) // Remove HTML tags
 });
 
-// Schema for reportIssue endpoint
-// Body: { issueType, remarks }
 const ReportIssueSchema = z.object({
   issueType: z
     .enum(["Lost", "Damaged"], {
@@ -45,7 +40,7 @@ const ReportIssueSchema = z.object({
     .min(1, "Remarks are required")
     .max(500, "Remarks cannot exceed 500 characters")
     .refine((val) => val.trim().length > 0, "Remarks cannot be just whitespace")
-    .transform((val) => sanitizeHTML(val)) // Remove HTML tags
+    .transform((val) => sanitizeHTML(val)) 
 });
 
 
@@ -60,11 +55,7 @@ const sanitizeHTML = (str) => {
 
 // ===== VALIDATION MIDDLEWARE FUNCTIONS =====
 
-/**
- * Validate borrow request body
- * Endpoint: POST /api/v1/borrow/request
- * Body: { bookId }
- */
+
 export const validateBorrowRequest = (req, res, next) => {
   try {
     const validated = BorrowRequestSchema.parse(req.body);
@@ -79,11 +70,7 @@ export const validateBorrowRequest = (req, res, next) => {
   }
 };
 
-/**
- * Validate approve borrow body
- * Endpoint: PUT /api/v1/borrow/admin/approve/:id
- * Body: { dueDate }
- */
+
 export const validateApprove = (req, res, next) => {
   try {
     const validated = ApproveBorrowSchema.parse(req.body);
@@ -98,11 +85,7 @@ export const validateApprove = (req, res, next) => {
   }
 };
 
-/**
- * Validate reject borrow body
- * Endpoint: PUT /api/v1/borrow/admin/reject/:id
- * Body: { remarks }
- */
+
 export const validateReject = (req, res, next) => {
   try {
     const validated = RejectBorrowSchema.parse(req.body);
@@ -117,11 +100,7 @@ export const validateReject = (req, res, next) => {
   }
 };
 
-/**
- * Validate report issue body
- * Endpoint: PUT /api/v1/borrow/admin/report-issue/:id
- * Body: { issueType, remarks }
- */
+
 export const validateReportIssue = (req, res, next) => {
   try {
     const validated = ReportIssueSchema.parse(req.body);

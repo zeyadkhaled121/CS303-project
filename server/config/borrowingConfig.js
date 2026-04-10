@@ -78,7 +78,6 @@ const BorrowingConfig = {
     USERS: "users"
   },
 
-  // ===== HELPER FUNCTIONS =====
 
   // Calculate due date from today
   calculateDueDate: (daysFromNow = this.LOAN_PERIOD_DAYS) => {
@@ -93,7 +92,7 @@ const BorrowingConfig = {
     return new Date() > new Date(dueDate);
   },
 
-  // Check if date is within warning period (e.g., 3 days before due date)
+  // Check if date is within warning period 
   isWithinWarningPeriod: (dueDate, warningDaysBefore = 3) => {
     const now = new Date();
     const dueDateTime = new Date(dueDate);

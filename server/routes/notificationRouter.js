@@ -23,7 +23,6 @@ router.get(
 );
 
 // 1. Get all notifications with pagination
-// Query params: unreadOnly (true/false), skip, limit
 router.get(
   "/",
   isAuthenticatedUser,

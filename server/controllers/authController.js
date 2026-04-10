@@ -353,7 +353,6 @@ export const getAllUsers = catchAsyncErrors(async (req, res, next) => {
         return next(new ErrorHandler("Access denied.", 403));
     }
 
-    // Run count and query in parallel
     const [countSnap, querySnap] = await Promise.all([
         baseQuery.count().get(),
         baseQuery.offset(parseInt(skip)).limit(parseInt(limit)).get()
