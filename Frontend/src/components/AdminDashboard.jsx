@@ -2,13 +2,14 @@ import React, { useEffect, useState, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import { 
   FaPlus, FaTrash, FaEdit, FaEye, FaLayerGroup, 
-  FaShieldAlt, FaBookOpen, FaInbox 
+  FaShieldAlt, FaBookOpen, FaInbox, FaMoneyBillWave, FaBan 
 } from "react-icons/fa";
 import { fetchAllBooks, deleteBook, resetBookSlice } from "../store/slices/bookSlice";
 import { toggleAddBookPopup, toggleReadBookPopup } from "../store/slices/popUpSlice";
 import { toast } from "react-toastify";
 import AddBookPopup from "../popups/AddBookPopup";
 import ReadBookPopup from "../popups/ReadBookPopup";
+import api from "../api/axios";
 
 const AdminDashboard = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
@@ -18,6 +19,32 @@ const AdminDashboard = ({ searchTerm = "" }) => {
 
   const [selectedBook, setSelectedBook] = useState(null);
   const [editBook, setEditBook] = useState(null);
+
+  const [unpaidFines, setUnpaidFines] = useState([]);
+  const [bannedUsers, setBannedUsers] = useState([]);
+
+  const fetchFines = async () => {
+    try {
+      const res = await api.get("/api/admin/fines?status=unpaid");
+      setUnpaidFines(res.data.fines || []);
+    } catch (err) {
+      console.error("Failed to fetch unpaid fines", err);
+    }
+  };
+
+  const fetchBannedUsers = async () => {
+    try {
+      const res = await api.get("/api/admin/banned-users");
+      setBannedUsers(res.data.users || []);
+    } catch (err) {
+      console.error("Failed to fetch banned users", err);
+    }
+  };
+
+  useEffect(() => {
+    fetchFines();
+    fetchBannedUsers();
+  }, []);
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -43,7 +70,25 @@ const AdminDashboard = ({ searchTerm = "" }) => {
       b.genre?.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [books, searchTerm]);
+  const handleConfirmPayment = async (fineId) => {
+    try {
+      await api.patch(`/api/admin/fines/${fineId}/confirm-payment`);
+      toast.success("Payment confirmed!");
+      fetchFines();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || "Failed to confirm payment");
+    }
+  };
 
+  const handleUnbanUser = async (userId) => {
+    try {
+      await api.patch(`/api/admin/users/${userId}/unban`);
+      toast.success("User unbanned successfully");
+      fetchBannedUsers();
+    } catch (err) {
+      toast.error(err.response?.data?.message || err.message || "Failed to unban user");
+    }
+  };
  const handleDeleteConfirm = (id, title) => {
   toast(
     ({ closeToast }) => (
@@ -148,6 +193,103 @@ const AdminDashboard = ({ searchTerm = "" }) => {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* --- BANNED USERS & UNPAID FINES --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
+        {/* Unpaid Fines Table */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+            <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" /> Unpaid Fines
+            </h2>
+            <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+              {unpaidFines.length} Fines
+            </div>
+          </div>
+          <div className="overflow-x-auto p-4 custom-scrollbar max-h-80 overflow-y-auto">
+            <table className="w-full text-left border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                    <th className="px-4 py-2">User Details</th>
+                  <th className="px-4 py-2">Amount</th>
+                  <th className="px-4 py-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {unpaidFines.length === 0 ? (
+                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-xs font-bold">No unpaid fines</td></tr>
+                ) : (
+                  unpaidFines.map((fine) => (
+                    <tr key={fine.id} className="bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
+                      <td className="px-4 py-3 rounded-l-xl text-xs font-bold text-slate-700">
+                          {fine.userName || "Unknown"}
+                          <div className="text-[9px] text-slate-400 font-normal">{fine.userEmail}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-black text-red-500">${fine.amount || fine.fineAmount || 0}</td>
+                      <td className="px-4 py-3 rounded-r-xl text-center">
+                        <button 
+                          onClick={() => handleConfirmPayment(fine.id)}
+                          className="bg-emerald-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-emerald-600 transition-colors"
+                        >
+                          Confirm
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Banned Users Table */}
+        <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
+            <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+              <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Banned Users
+            </h2>
+            <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+              {bannedUsers.length} Users
+            </div>
+          </div>
+          <div className="overflow-x-auto p-4 custom-scrollbar max-h-80 overflow-y-auto">
+            <table className="w-full text-left border-separate border-spacing-y-2">
+              <thead>
+                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                  <th className="px-4 py-2">User Details</th>
+                  <th className="px-4 py-2">Offenses</th>
+                  <th className="px-4 py-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {bannedUsers.length === 0 ? (
+                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-xs font-bold">No banned users</td></tr>
+                ) : (
+                  bannedUsers.map((bUser) => (
+                    <tr key={bUser.id} className="bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
+                      <td className="px-4 py-3 rounded-l-xl text-xs font-bold text-slate-700">
+                        {bUser.name || "Unknown"}
+                        <div className="text-[9px] text-slate-400 font-normal">{bUser.email}</div>
+                      </td>
+                      <td className="px-4 py-3 text-xs font-black text-red-500">{bUser.offenseCount || 0}</td>
+                      <td className="px-4 py-3 rounded-r-xl text-center">
+                        <button 
+                          onClick={() => handleUnbanUser(bUser.id)}
+                          className="bg-blue-500 text-white px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-wider hover:bg-blue-600 transition-colors"
+                        >
+                          Unban
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
       </div>
 
       {/* --- INNOVATIVE ASSET LIST --- */}

@@ -1,6 +1,3 @@
-/**
- * Data shape adapter for mixed backend payload formats.
- */
 
 /**
  * Safely extract value from object, trying multiple keys

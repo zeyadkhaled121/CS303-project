@@ -19,12 +19,17 @@ import {
 import { notifyWarning, notifyInfo, notifyError } from "../utils/toastNotificationManager";
 import { ImSpinner2 } from "react-icons/im";
 
+import { db } from "../utils/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { useEffect } from "react";
+
 const BookCard = (props) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
 
   // ─── STATE ───
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [liveUser, setLiveUser] = useState(null);
 
   // ─── PROPS EXTRACTION & NORMALIZATION ───
   // Extract ID: support both _id and id formats
@@ -42,10 +47,20 @@ const BookCard = (props) => {
     : props.status === "Available";
 
   // ─── REDUX STATE ───
-  const { isAuthenticated } = useSelector((state) => state.auth);
+  const { isAuthenticated, user } = useSelector((state) => state.auth);
   const { userBorrowedBooks = [] } = useSelector(
     (state) => state.borrow
   );
+
+  useEffect(() => {
+    if (!isAuthenticated || !user?.id) return;
+    const unsub = onSnapshot(doc(db, "users", user.id), (docSnap) => {
+      if (docSnap.exists()) {
+        setLiveUser(docSnap.data());
+      }
+    });
+    return () => unsub();
+  }, [isAuthenticated, user?.id]);
 
   // ─── FIND ACTIVE BORROW RECORD FOR THIS BOOK ───
   // Search across different payload shapes

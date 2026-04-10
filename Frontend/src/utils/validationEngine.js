@@ -1,6 +1,4 @@
-/**
- * Unified validation and sanitization helpers.
- */
+
 
 const MAX_REMARKS_LENGTH = 500;
 const MAX_BORROW_WINDOW_DAYS = 60;
@@ -44,7 +42,6 @@ const unpackApprovePayload = (borrowOrPayload, dueDate) => {
 };
 
 /**
- * Sanitize string input to prevent XSS attacks
  * @param {string} input - User input to sanitize
  * @returns {string} Safe, cleaned string
  */
@@ -54,7 +51,6 @@ export const sanitizeString = (input) => {
     return String(input);
   }
 
-  // Basic XSS prevention: remove script tags and dangerous patterns
   const dangerous = /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi;
   const eventHandlers = /on\w+\s*=\s*(["'][^"']*["']|[^\s>]+)/gi;
   const javascriptProtocol = /javascript:/gi;

@@ -1,14 +1,44 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FaBook, FaSearch } from "react-icons/fa";
+import { FaBook, FaSearch, FaBell, FaExclamationTriangle, FaBan } from "react-icons/fa";
 import { fetchAllBooks, resetBookSlice } from "../store/slices/bookSlice";
 import { toast } from "react-toastify";
 import BookCard from "./BookCard";
+import { collection, query, where, onSnapshot, doc } from "firebase/firestore";
+import { db } from "../utils/firebase";
 
 const UserDashboard = ({ searchTerm = "" }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
   const { books, loading, error, message } = useSelector((state) => state.book);
+
+  const [liveUser, setLiveUser] = useState(null);
+  const [notifications, setNotifications] = useState([]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+    
+    // Listen to current user document
+    const userUnsub = onSnapshot(doc(db, "users", user.id), (docSnap) => {
+      if (docSnap.exists()) {
+        setLiveUser(docSnap.data());
+      }
+    });
+
+    // Listen to notifications
+    const q = query(collection(db, "notifications"), where("userId", "==", user.id));
+    const notifUnsub = onSnapshot(q, (snapshot) => {
+      const notifs = [];
+      snapshot.forEach((doc) => notifs.push({ id: doc.id, ...doc.data() }));
+      notifs.sort((a, b) => (b.createdAt?.toMillis() || 0) - (a.createdAt?.toMillis() || 0));
+      setNotifications(notifs);
+    });
+
+    return () => {
+      userUnsub();
+      notifUnsub();
+    };
+  }, [user?.id]);
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -28,6 +58,38 @@ const UserDashboard = ({ searchTerm = "" }) => {
 
   return (
     <div className="w-full space-y-10 animate-fadeIn p-2">
+      {/* Banners */}
+      {liveUser?.isBanned && (
+        <div className="bg-red-50 text-red-700 p-4 rounded-2xl flex items-center gap-3 border border-red-200">
+          <FaBan className="text-xl shrink-0" />
+          <p className="font-bold">Your account has been banned. You can no longer borrow books. Please contact an administrator.</p>
+        </div>
+      )}
+      {!liveUser?.isBanned && liveUser?.isFineRestricted && (
+        <div className="bg-yellow-50 text-yellow-800 p-4 rounded-2xl flex items-center gap-3 border border-yellow-200">
+          <FaExclamationTriangle className="text-xl shrink-0" />
+          <p className="font-bold">Your account is restricted due to unpaid fines (${liveUser.fineBalance || 0}). Please pay your fines to resume borrowing.</p>
+        </div>
+      )}
+
+      {/* Notifications Panel */}
+      {notifications.length > 0 && (
+        <div className="bg-white p-6 rounded-[2rem] shadow-sm border border-gray-100 mb-6">
+          <div className="flex items-center gap-2 mb-4">
+            <FaBell className="text-gray-400" />
+            <h3 className="font-black text-gray-800 uppercase tracking-widest text-xs">Notifications</h3>
+          </div>
+          <div className="space-y-3 max-h-48 overflow-y-auto pr-2 custom-scrollbar">
+            {notifications.map((notif) => (
+              <div key={notif.id} className={`p-3 rounded-xl text-sm ${notif.read ? 'bg-gray-50' : 'bg-blue-50 border border-blue-100'}`}>
+                <p className="text-gray-700">{notif.message || notif.title}</p>
+                <span className="text-xs text-gray-400 block mt-1">{new Date(notif.createdAt?.toMillis() || Date.now()).toLocaleString()}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Welcome & Stats Summary */}
       <div className="bg-white p-8 rounded-[3rem] shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-6">
         <div>
