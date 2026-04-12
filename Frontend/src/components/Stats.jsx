@@ -91,12 +91,12 @@ const Stats = ({ setSelectedComponent }) => {
         </div>
         <div className="flex gap-4">
             <div className="text-right">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Loan Rate</p>
+                <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Loan Rate</p>
                 <p className="text-2xl font-black text-[#358a74]">{loanRate}%</p>
             </div>
             <div className="w-[2px] h-10 bg-gray-100 mx-2"></div>
             <div className="text-right">
-                <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Members</p>
+                <p className="text-[11px] font-black text-gray-500 uppercase tracking-widest">Active Members</p>
                 <p className="text-2xl font-black text-gray-800">{totalUsers}</p>
             </div>
         </div>
@@ -130,7 +130,7 @@ const Stats = ({ setSelectedComponent }) => {
           <div className="flex justify-between items-center mb-10">
             <div>
                 <h4 className="font-black text-gray-800 flex items-center gap-2">Genre Popularity</h4>
-                <p className="text-xs text-gray-400">Inventory volume categorized by book genre</p>
+                <p className="text-s text-gray-500">Inventory volume categorized by book genre</p>
             </div>
             <FaChartLine className="text-gray-200" size={24} />
           </div>
@@ -154,7 +154,7 @@ const Stats = ({ setSelectedComponent }) => {
         <div className="bg-white p-10 rounded-[3rem] shadow-sm border border-gray-100 flex flex-col items-center">
             <div className="w-full mb-6">
                 <h4 className="font-black text-gray-800">Library Status</h4>
-                <p className="text-xs text-gray-400">Ratio of available vs currently borrowed books</p>
+                <p className="text-s text-gray-500">Ratio of available vs currently borrowed books</p>
             </div>
             <div className="h-64 w-full relative">
                 <ResponsiveContainer width="100%" height="100%">

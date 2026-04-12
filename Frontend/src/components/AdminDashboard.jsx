@@ -158,11 +158,11 @@ const AdminDashboard = ({ searchTerm = "" }) => {
           <div className="relative z-10 space-y-4 text-center md:text-left">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-emerald-50 rounded-full border border-emerald-100/50">
               <FaShieldAlt className="text-[#358a74] text-[10px]" />
-              <span className="text-[10px] font-black uppercase tracking-widest text-[#358a74]">Security Verified</span>
+              <span className="text-[12px] font-black uppercase tracking-widest text-[#358a74]">Security Verified</span>
             </div>
             <h1 className="text-4xl font-light leading-tight">
               Welcome, <span className="font-black text-slate-900">{user?.name?.split(' ')[0]}</span>
-              <p className="text-sm font-medium text-slate-400 mt-2 ">You have full control over the library catalog.</p>
+              <p className="text-sm font-medium text-slate-500 mt-2 ">You have full control over the library catalog.</p>
             </h1>
           </div>
 
@@ -180,7 +180,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
             <FaLayerGroup className="text-emerald-400 text-xl group-hover:scale-110 transition-transform" />
             <div>
               <p className="text-4xl font-black  tracking-tighter">{books.length}</p>
-              <p className="text-[10px] uppercase font-bold text-slate-500 tracking-widest">Total Catalog</p>
+              <p className="text-[12px] uppercase font-bold text-slate-500 tracking-widest">Total Catalog</p>
             </div>
           </div>
           <div className="bg-white border border-slate-100 rounded-[2rem] p-6 flex flex-col justify-between shadow-sm group hover:border-[#358a74] transition-all">
@@ -189,7 +189,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
               <p className="text-4xl font-black text-slate-900 tracking-tighter">
                 {books.reduce((acc, book) => acc + (book.availableCopies || 0), 0)}
               </p>
-              <p className="text-[10px] uppercase font-bold text-slate-400 tracking-widest">In Stock</p>
+              <p className="text-[12px] uppercase font-bold text-slate-500 tracking-widest">In Stock</p>
             </div>
           </div>
         </div>
@@ -201,17 +201,17 @@ const AdminDashboard = ({ searchTerm = "" }) => {
         {/* Unpaid Fines Table */}
         <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-            <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+            <h2 className="font-black text-[14px] uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-yellow-400" /> Unpaid Fines
             </h2>
-            <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+            <div className="text-[14px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
               {unpaidFines.length} Fines
             </div>
           </div>
           <div className="overflow-x-auto p-4 custom-scrollbar max-h-80 overflow-y-auto">
             <table className="w-full text-left border-separate border-spacing-y-2">
               <thead>
-                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <tr className="text-[13px] font-black text-slate-500 uppercase tracking-widest">
                     <th className="px-4 py-2">User Details</th>
                   <th className="px-4 py-2">Amount</th>
                   <th className="px-4 py-2 text-center">Action</th>
@@ -219,7 +219,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
               </thead>
               <tbody>
                 {unpaidFines.length === 0 ? (
-                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-xs font-bold">No unpaid fines</td></tr>
+                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-s font-bold">No unpaid fines</td></tr>
                 ) : (
                   unpaidFines.map((fine) => (
                     <tr key={fine.id} className="bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
@@ -247,17 +247,17 @@ const AdminDashboard = ({ searchTerm = "" }) => {
         {/* Banned Users Table */}
         <div className="bg-white rounded-[3rem] border border-slate-100 shadow-sm overflow-hidden">
           <div className="p-6 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-            <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+            <h2 className="font-black text-[14px] uppercase tracking-[0.2em] text-slate-400 flex items-center gap-2">
               <div className="w-1.5 h-1.5 rounded-full bg-red-500" /> Banned Users
             </h2>
-            <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
+            <div className="text-[13px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
               {bannedUsers.length} Users
             </div>
           </div>
           <div className="overflow-x-auto p-4 custom-scrollbar max-h-80 overflow-y-auto">
             <table className="w-full text-left border-separate border-spacing-y-2">
               <thead>
-                <tr className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <tr className="text-[13px] font-black text-slate-500 uppercase tracking-widest">
                   <th className="px-4 py-2">User Details</th>
                   <th className="px-4 py-2">Offenses</th>
                   <th className="px-4 py-2 text-center">Action</th>
@@ -265,7 +265,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
               </thead>
               <tbody>
                 {bannedUsers.length === 0 ? (
-                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-xs font-bold">No banned users</td></tr>
+                  <tr><td colSpan="3" className="text-center py-8 text-slate-400 text-s font-bold">No banned users</td></tr>
                 ) : (
                   bannedUsers.map((bUser) => (
                     <tr key={bUser.id} className="bg-slate-50 rounded-xl hover:bg-slate-100 transition-all">
@@ -295,7 +295,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
       {/* --- INNOVATIVE ASSET LIST --- */}
       <div className="bg-white rounded-[3rem] border border-slate-100 shadow-xl shadow-slate-200/20 overflow-hidden">
         <div className="p-8 border-b border-slate-50 flex justify-between items-center bg-slate-50/30">
-          <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-slate-400 flex items-center gap-2">
+          <h2 className="font-black text-[12px] uppercase tracking-[0.2em] text-slate-500 flex items-center gap-2">
             <div className="w-1.5 h-1.5 rounded-full bg-[#358a74]" /> Live Database
           </h2>
           <div className="text-[10px] font-bold text-slate-400 bg-white px-3 py-1 rounded-full border border-slate-100">
@@ -306,7 +306,7 @@ const AdminDashboard = ({ searchTerm = "" }) => {
         <div className="overflow-x-auto px-4 pb-8">
           <table className="w-full border-separate border-spacing-y-3">
             <thead>
-              <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+              <tr className="text-[12px] font-black text-slate-500 uppercase tracking-widest">
                 <th className="px-6 py-4 text-left">Asset Details</th>
                 <th className="px-6 py-4 text-left">Category</th>
                 <th className="px-6 py-4 text-left">Availability</th>
@@ -315,12 +315,12 @@ const AdminDashboard = ({ searchTerm = "" }) => {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="4" className="text-center py-20 text-slate-300 animate-pulse font-bold tracking-widest">Synchronizing Data...</td></tr>
+                <tr><td colSpan="4" className="text-center py-20 text-slate-400 animate-pulse font-bold tracking-widest">Synchronizing Data...</td></tr>
               ) : filteredBooks.length === 0 ? (
                 <tr>
                   <td colSpan="4" className="text-center py-20">
                     <FaInbox className="mx-auto text-slate-100 text-6xl mb-4" />
-                    <p className="font-black text-slate-300 uppercase tracking-widest">No Matches Found</p>
+                    <p className="font-black text-slate-400 uppercase tracking-widest">No Matches Found</p>
                   </td>
                 </tr>
               ) : (
@@ -336,15 +336,15 @@ const AdminDashboard = ({ searchTerm = "" }) => {
                           />
                         </div>
                         <div>
-                          <p className="text-sm font-black text-slate-900 leading-none">{book.title}</p>
-                          <p className="text-[10px] font-bold text-[#358a74] uppercase tracking-tighter mt-1">{book.author}</p>
+                          <p className="text-m font-black text-slate-900 leading-none">{book.title}</p>
+                          <p className="text-[12px] font-bold text-[#358a74] uppercase tracking-tighter mt-1">{book.author}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 bg-white group-hover:bg-slate-50/80 transition-all">
                       <div className="flex flex-col">
                         <span className="text-xs font-bold text-slate-600 ">#{book.genre}</span>
-                        <span className="text-[9px] text-slate-300 font-black tracking-widest uppercase mt-0.5">
+                        <span className="text-[10px] text-slate-400 font-black tracking-widest uppercase mt-0.5">
                           {book.edition || '1st'} Edition
                         </span>
                       </div>

@@ -148,21 +148,21 @@ const getDueDateStatus = (dueDate, requestDate) => {
         if (diffDays < 0) {
           return {
             text: `Overdue by ${Math.abs(diffDays)} days`,
-            color: "text-rose-500 font-black",
+            color: "text-rose-800 font-black",
             durationString
           };
         }
         if (diffDays <= 2) {
           return {
             text: `Due in ${diffDays} days`,
-            color: "text-amber-500 font-bold",
+            color: "text-amber-800 font-bold",
             durationString
           };
         }
         return { text: target.toLocaleDateString(), color: "text-slate-500 font-medium", durationString };
       } catch (e) {
         console.error("Date parse error", e);
-        return { text: "Invalid", color: "text-slate-300", durationString: "" };
+        return { text: "Invalid", color: "text-slate-500", durationString: "" };
     }
   };
 
@@ -329,19 +329,19 @@ const handleApprove = (item) => {
             <table className="w-full">
               <thead>
                 <tr className="bg-slate-50/50 border-b border-slate-100">
-                  <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400">
+                  <th className="px-8 py-6 text-[17px] font-black uppercase text-slate-600">
                     Member
                   </th>
-                  <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400">
+                  <th className="px-8 py-6 text-[17px] font-black uppercase text-slate-600">
                     Asset Detail
                   </th>
-                  <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400">
+                  <th className="px-8 py-6 text-[17px] font-black uppercase text-slate-600">
                     Status
                   </th>
-                  <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400">
+                  <th className="px-8 py-6 text-[17px] font-black uppercase text-slate-600">
                     Timeline
                   </th>
-                  <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400">
+                  <th className="px-8 py-6 text-[17px] font-black uppercase text-slate-600">
                     Operations
                   </th>
                 </tr>
@@ -365,10 +365,9 @@ const handleApprove = (item) => {
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
             <div>
-              <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase italic">
-                Borrowing Logistics
+<h2 className="text-4xl font-black text-slate-900 tracking-tight capitalize italic">                Borrowing Logistics
               </h2>
-              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 italic">
+              <p className="text-[15px] font-bold text-slate-900 uppercase tracking-[0.1em] mt-5 italic">
                 Monitor assets & approval workflows
               </p>
             </div>
@@ -380,7 +379,7 @@ const handleApprove = (item) => {
                   placeholder="Search member or book..."
                   value={localSearch}
                   onChange={(e) => setLocalSearch(e.target.value)}
-                  className="bg-white border border-slate-200 rounded-xl px-10 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-[#358a74]/20 w-64 shadow-sm"
+                  className="bg-white border border-slate-200 rounded-xl px-10 py-2.5 text-m focus:outline-none focus:ring-2 focus:ring-[#358a74]/20 w-64 shadow-sm"
                 />
                 <FaSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-300" size={12} />
               </div>
@@ -420,14 +419,12 @@ const handleApprove = (item) => {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between mb-8 gap-4">
           <div>
-            <h2 className="text-2xl font-black text-slate-800 tracking-tight uppercase italic">
-              Borrowing Logistics
-            </h2>
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-[0.2em] mt-1 italic">
-              Monitor assets & approval workflows ({filteredData.length} record
-              {filteredData.length !== 1 ? "s" : ""})
-            </p>
-          </div>
+<h2 className="text-4xl font-black text-slate-900 tracking-tight capitalize italic">                Borrowing Logistics
+              </h2>
+              <p className="text-[15px] font-bold text-slate-900 uppercase tracking-[0.1em] mt-5 italic">
+                Monitor assets & approval workflows
+              </p>
+            </div>
 
           <div className="flex items-center gap-3">
             <div className="relative">
@@ -444,7 +441,7 @@ const handleApprove = (item) => {
             <select
               value={filterStatus}
               onChange={(e) => setFilterStatus(e.target.value)}
-              className="bg-white border border-slate-200 rounded-xl px-4 py-2.5 text-[10px] font-black uppercase text-slate-600 focus:outline-none cursor-pointer shadow-sm tracking-widest"
+              className="bg-white border border-slate-300 rounded-xl px-4 py-2.5 text-[11px] font-black uppercase text-slate-600 focus:outline-none cursor-pointer shadow-sm tracking-widest"
             >
               <option value="Active">Active Only</option>
               <option value="All">All History</option>
@@ -460,19 +457,19 @@ const handleApprove = (item) => {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-slate-50/50 border-b border-slate-100">
-                <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-600 tracking-[0.2em]">
                   Member
                 </th>
-                <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-600 tracking-[0.2em]">
                   Asset Detail
                 </th>
-                <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400 tracking-[0.2em]">
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-600 tracking-[0.2em]">
                   Status
                 </th>
-                <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] text-center">
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-600 tracking-[0.2em] text-center">
                   Timeline
                 </th>
-                <th className="px-8 py-6 text-[9px] font-black uppercase text-slate-400 tracking-[0.2em] text-right">
+                <th className="px-8 py-6 text-[10px] font-black uppercase text-slate-600 tracking-[0.2em] text-right">
                   Operations
                 </th>
               </tr>
@@ -511,13 +508,13 @@ const handleApprove = (item) => {
                           {userInitial}
                         </div>
                         <div>
-                            <p className="text-sm font-black text-slate-700 leading-tight">
+                            <p className="text-m font-black text-slate-900 leading-tight">
                               {userName}
                             </p>
-                            <p className="text-[10px] text-slate-500 font-medium">
+                            <p className="text-[12px] text-slate-500 font-medium">
                               {userEmail}
                             </p>
-                            <p className="text-[9px] text-[#358a74] font-black uppercase tracking-widest mt-0.5">
+                            <p className="text-[10px] text-[#358a74] font-black uppercase tracking-widest mt-0.5">
                             {userRole}
                           </p>
                         </div>
@@ -532,19 +529,19 @@ const handleApprove = (item) => {
                           {bookCover ? (
                             <img src={bookCover} alt={title} className="w-full h-full object-cover" />
                           ) : (
-                            <FaBook size={16} className="text-slate-300" />
+                            <FaBook size={18} className="text-slate-300" />
                           )}
                         </div>
                         
                         <div className="flex flex-col gap-1">
                           <div className="flex items-center gap-1.5 flex-wrap">
-                            <span className="text-xs font-bold text-slate-800 tracking-tight">
+                            <span className="text-sm font-bold text-slate-800 tracking-tight">
                               {title}
                             </span>
                           </div>
                           
                           {author && (
-                            <span className="text-[10px] font-medium text-slate-500">
+                            <span className="text-[12px] font-medium text-slate-500">
                               {author}
                             </span>
                           )}
@@ -552,20 +549,20 @@ const handleApprove = (item) => {
                           {(genre || edition) && (
                             <div className="flex flex-wrap gap-2 mt-0.5">
                               {genre && (
-                                <span className="text-[8px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                                   {genre}
                                 </span>
                               )}
                               {edition && (
-                                <span className="text-[8px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                                <span className="text-[10px] bg-slate-100 text-slate-500 px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
                                   {edition}
                                 </span>
                               )}
                             </div>
                           )}
 
-                          <span className="text-[9px] text-slate-400 flex items-center gap-1 font-bold mt-0.5">
-                            <FaClock size={8} /> Applied:{" "}
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1 font-bold mt-0.5">
+                            <FaClock size={10} /> Applied:{" "}
                               {(() => {
                                 const dt = item?.requestDate || item?.createdAt || item?.created_at;
                                 if (dt && dt._seconds) return new Date(dt._seconds * 1000).toLocaleDateString();
@@ -579,7 +576,7 @@ const handleApprove = (item) => {
                     {/* Status Column */}
                     <td className="px-8 py-5">
                       <span
-                        className={`text-[8px] font-black uppercase px-3 py-1.5 rounded-lg border ${
+                        className={`text-[10px] font-black uppercase px-3 py-1.5 rounded-lg border ${
                           status === "Pending"
                             ? "bg-amber-50 text-amber-600 border-amber-100"
                             : status === "Borrowed"
@@ -616,7 +613,7 @@ const handleApprove = (item) => {
                               const d = item?.dueDate || item?.due_date;
                               if (!d) return "Not Set";
                               const ms = d._seconds ? d._seconds * 1000 : d;
-                              return new Date(ms).toLocaleString("en-US", { weekday: "short", year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/,/g, "");
+                              return new Date(m).toLocaleString("en-US", { weekday: "short", year: "numeric", month: "short", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/,/g, "");
                             })()}
                           </span>
                         </div>
@@ -663,7 +660,7 @@ const handleApprove = (item) => {
                             </button>
                           </div>
                         ) : (
-                          <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest ">
+                          <span className="text-[13px] font-black text-slate-300 uppercase tracking-widest ">
                             CLOSED / COMPLETED
                           </span>
                         )}

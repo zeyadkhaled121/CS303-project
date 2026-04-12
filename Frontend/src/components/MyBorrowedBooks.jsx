@@ -222,7 +222,7 @@ const MyBorrowedBooksV2 = ({ searchTerm = "" }) => {
                 <h1 className="text-4xl font-black tracking-tighter mb-2">
                   My Digital Shelf
                 </h1>
-                <p className="text-emerald-100 font-bold text-sm uppercase tracking-widest opacity-80">
+                <p className="text-emerald-100 font-bold text-m uppercase tracking-widest opacity-40">
                   Manage your personal collection and returns
                 </p>
               </div>
@@ -230,7 +230,7 @@ const MyBorrowedBooksV2 = ({ searchTerm = "" }) => {
 
             {/* Stats Card */}
             <div className="bg-white rounded-[3rem] p-10 border border-emerald-50 flex flex-col justify-center shadow-sm">
-              <p className="text-[#358a74] font-black text-[10px] uppercase tracking-[0.3em] mb-4">
+              <p className="text-[#358a74] font-black text-[15px] uppercase tracking-[0.1em] mb-4">
                 Reading Progress
               </p>
               <div className="flex items-end gap-2">

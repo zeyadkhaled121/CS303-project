@@ -65,7 +65,7 @@ const BookManagement = () => {
       
       {/* Header section */}
       <div className="flex flex-col md:flex-row justify-between items-center bg-white p-8 rounded-[2.5rem] shadow-sm border border-gray-100 gap-4">
-        <h2 className="text-2xl font-black text-gray-800 flex items-center gap-3">
+        <h2 className="text-2xl font-black text-gray-900 flex items-center gap-3">
           <div className="p-2 bg-[#358a74] rounded-xl text-white shadow-lg shadow-emerald-900/20">
             <FaHandHolding size={20} />
           </div>
@@ -85,7 +85,7 @@ const BookManagement = () => {
           </div>
           <button 
             onClick={() => setShowRecordPopup(true)} 
-            className="bg-[#358a74] text-white px-6 py-3 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-[#2d7663] transition-all shadow-lg shadow-emerald-900/10 active:scale-95 whitespace-nowrap"
+            className="bg-[#358a74] text-white px-6 py-3 rounded-2xl text-[12px] font-black uppercase tracking-widest hover:bg-[#2d7663] transition-all shadow-lg shadow-emerald-900/10 active:scale-95 whitespace-nowrap"
           >
             <Plus size={14} className="inline mr-1" /> New Record
           </button>
@@ -95,17 +95,17 @@ const BookManagement = () => {
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="bg-white p-6 rounded-[2rem] shadow-sm flex items-center gap-4 border border-gray-50">
-          <div className="p-4 bg-amber-50 text-amber-600 rounded-2xl"><Clock size={24} /></div>
+          <div className="p-4 bg-amber-50 text-amber-800 rounded-2xl"><Clock size={24} /></div>
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Active Loans</p>
-            <p className="text-2xl font-black text-gray-800">{activeLoans.length}</p>
+            <p className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Active Loans</p>
+            <p className="text-3xl font-black text-gray-800">{activeLoans.length}</p>
           </div>
         </div>
         
         <div className="bg-white p-6 rounded-[2rem] shadow-sm flex items-center gap-4 border border-gray-50">
-          <div className="p-4 bg-emerald-50 text-[#358a74] rounded-2xl"><BookIcon size={24} /></div>
+          <div className="p-4 bg-emerald-50 text-[#358a74] rounded-3xl"><BookIcon size={24} /></div>
           <div>
-            <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">Total Books</p>
+            <p className="text-[10px] font-black text-gray-800 uppercase tracking-widest">Total Books</p>
             <p className="text-2xl font-black text-gray-800">{books.length}</p>
           </div>
         </div>
@@ -113,7 +113,7 @@ const BookManagement = () => {
         <div className="bg-[#358a74] p-6 rounded-[2rem] shadow-lg flex items-center gap-4 text-white">
           <div className="p-4 bg-white/20 rounded-2xl"><AlertCircle size={24} /></div>
           <div>
-            <p className="text-[10px] font-black text-emerald-100 uppercase tracking-widest">Overdue Items</p>
+            <p className="text-[10px] font-black text-emerald-300 uppercase tracking-widest">Overdue Items</p>
             <p className="text-2xl font-black">{activeLoans.filter((l) => l?.dueDate && new Date(l.dueDate) < new Date()).length}</p>
           </div>
         </div>
@@ -123,7 +123,7 @@ const BookManagement = () => {
       <div className="bg-white rounded-[2.5rem] shadow-sm border border-gray-100 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
-            <thead className="bg-gray-50/50 text-gray-400 text-[10px] font-black uppercase tracking-widest">
+            <thead className="bg-gray-50/50 text-gray-600 text-[14px] font-black uppercase tracking-widest">
               <tr>
                 <th className="px-8 py-5">Borrower & Book</th>
                 <th className="px-8 py-5">Due Date</th>
@@ -164,7 +164,7 @@ const BookManagement = () => {
                     <td className="px-8 py-5 text-right">
                       <button 
                         onClick={() => { setSelectedLoan(loan); setShowReturnPopup(true); }} 
-                        className="bg-gray-50 text-gray-700 px-5 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#358a74] hover:text-white transition-all active:scale-95 border border-gray-100"
+                        className="bg-gray-50 text-gray-700 px-10 py-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-[#358a74] hover:text-white transition-all active:scale-95 border border-gray-100"
                       >
                         Process Return
                       </button>

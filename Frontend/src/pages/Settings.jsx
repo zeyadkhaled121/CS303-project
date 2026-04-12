@@ -133,7 +133,7 @@ const Settings = ({ setSelectedComponent }) => {
 
             <form onSubmit={handlePasswordUpdate} className="space-y-6">
               <div>
-                <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Current Password</label>
+                <label className="block text-[11px] font-black text-slate-500 uppercase mb-2 tracking-widest ml-1">Current Password</label>
                 <input
                   type="password"
                   required
@@ -145,7 +145,7 @@ const Settings = ({ setSelectedComponent }) => {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">New Password</label>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase mb-2 tracking-widest ml-1">New Password</label>
                   <input
                     type="password"
                     required
@@ -155,7 +155,7 @@ const Settings = ({ setSelectedComponent }) => {
                   />
                 </div>
                 <div>
-                  <label className="block text-[10px] font-black text-slate-400 uppercase mb-2 tracking-widest ml-1">Confirm New</label>
+                  <label className="block text-[11px] font-black text-slate-500 uppercase mb-2 tracking-widest ml-1">Confirm New</label>
                   <input
                     type="password"
                     required
