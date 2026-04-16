@@ -1,4 +1,4 @@
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useState } from 'react';
 import {
   View,
   FlatList,
@@ -8,9 +8,10 @@ import {
   ActivityIndicator,
   Alert,
   SafeAreaView,
+  RefreshControl,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
-import Icon from 'react-native-vector-icons/Feather';
+import { Feather as Icon } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import {
   fetchNotifications,
@@ -33,6 +34,14 @@ export default function NotificationCenter({ navigation }) {
   const { items, unreadCount, loading, error, fallbackPollingActive } = useSelector(
     state => state.notifications
   );
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchNotifications());
+    setRefreshing(false);
+  };
 
   const navigateFromNotification = useCallback(
     (route) => {
@@ -334,6 +343,7 @@ export default function NotificationCenter({ navigation }) {
           ListEmptyComponent={renderEmptyState}
           contentContainerStyle={styles.flatListContent}
           scrollEnabled={true}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
     </SafeAreaView>

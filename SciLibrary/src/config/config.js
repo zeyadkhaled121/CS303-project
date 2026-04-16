@@ -1,7 +1,7 @@
 
 const ENV = {
   dev: {
-    apiUrl: 'http://192.168.1.12:5000',
+    apiUrl: 'http://192.168.1.5:5000',
     timeout: 15000,
   },
   staging: {

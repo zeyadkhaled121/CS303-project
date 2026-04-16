@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, TextInput, RefreshControl } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAllUsers, promoteUser, demoteUser, deleteUser, resetUserSlice } from '../store/slices/userSlice';
 import Toast from 'react-native-toast-message';
@@ -24,6 +24,13 @@ export default function UsersScreen({ navigation }) {
 
   const [searchTerm, setSearchTerm] = useState('');
   const isSuperAdmin = currentUser?.role === "Super Admin";
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchAllUsers());
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     dispatch(fetchAllUsers());
@@ -126,6 +133,7 @@ export default function UsersScreen({ navigation }) {
           keyExtractor={(item) => item._id || item.id?.toString()}
           renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 80 }}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
         />
       )}
 

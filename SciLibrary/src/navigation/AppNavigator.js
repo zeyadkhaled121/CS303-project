@@ -1,6 +1,7 @@
 import React, { useEffect } from "react";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { NavigationContainer } from "@react-navigation/native";
+import { navigationRef } from "./navigationRef";
 import { useDispatch, useSelector } from "react-redux";
 import { getUser } from "../store/slices/authSlice";
 import Toast from "react-native-toast-message";
@@ -156,7 +157,7 @@ const AppNavigator = function () {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef}>
       <RootStack isAuthenticated={isAuthenticated} user={user} />
     </NavigationContainer>
   );

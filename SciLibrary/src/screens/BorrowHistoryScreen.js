@@ -45,7 +45,7 @@ export default function BorrowHistoryScreen({ navigation }) {
         setHistoryList(history);
       } else {
         
-        const response = await fetch(`http://192.168.1.12:5000/api/v1/borrow/history`);
+        const response = await fetch(`http://192.168.1.5:5000/api/v1/borrow/history`);
         if (response.ok) {
           const data = await response.json();
           setHistoryList(data.data || []);

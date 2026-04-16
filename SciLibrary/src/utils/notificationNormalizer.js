@@ -93,11 +93,11 @@ export const mapNotificationUrlToRoute = (actionUrl) => {
     '/borrow/pending': { screen: 'MyBorrowedBooks', params: { tab: 'pending' } },
     '/borrow/returned': { screen: 'MyBorrowedBooks', params: { tab: 'returned' } },
     '/catalog': { screen: 'Catalog', params: {} },
-    '/books': { screen: 'Catalog', params: {} },
-    '/admin/requests': { screen: 'BorrowRequests', params: {} },
-    '/admin/dashboard': { screen: 'AdminDashboard', params: {} },
+    '/books': { screen: 'Books', params: {} },// Admin matches 'Books' tab
+    '/admin/requests': { screen: 'Requests', params: {} },
+    '/admin/dashboard': { screen: 'Books', params: {} },
     '/admin/stats': { screen: 'Stats', params: {} },
-    '/profile': { screen: 'Settings', params: {} },
+    '/profile': { screen: 'Profile', params: {} },
     '/settings': { screen: 'Settings', params: {} },
   };
 
