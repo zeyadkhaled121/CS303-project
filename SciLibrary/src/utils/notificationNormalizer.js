@@ -95,6 +95,7 @@ export const mapNotificationUrlToRoute = (actionUrl) => {
     '/catalog': { screen: 'Catalog', params: {} },
     '/books': { screen: 'Books', params: {} },// Admin matches 'Books' tab
     '/admin/requests': { screen: 'Requests', params: {} },
+    '/admin/borrowLogistics': { screen: 'Requests', params: {} },
     '/admin/dashboard': { screen: 'Books', params: {} },
     '/admin/stats': { screen: 'Stats', params: {} },
     '/profile': { screen: 'Profile', params: {} },

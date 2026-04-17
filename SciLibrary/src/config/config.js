@@ -1,7 +1,9 @@
 
+const MY_IP_ADDRESS = '192.168.1.25'; // Ensure this matches the IP in axios.js
+
 const ENV = {
   dev: {
-    apiUrl: 'http://192.168.1.5:5000',
+    apiUrl: `http://${MY_IP_ADDRESS}:5000`,
     timeout: 15000,
   },
   staging: {

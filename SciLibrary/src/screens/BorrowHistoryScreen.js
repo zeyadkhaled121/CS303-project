@@ -12,7 +12,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { EmptyState, LoadingSpinner } from '../components/UITemplates';
 import { COLORS, SPACING, TYPOGRAPHY, BORDER_RADIUS, SHADOWS } from '../../shared/designTokens';
 import { formatDateDisplay, safeExtractDate } from '../utils/borrowUtils';
-
+import API from '../api/axios';
 
 export default function BorrowHistoryScreen({ navigation }) {
   const { user } = useSelector(state => state.auth);
@@ -45,10 +45,9 @@ export default function BorrowHistoryScreen({ navigation }) {
         setHistoryList(history);
       } else {
         
-        const response = await fetch(`http://192.168.1.5:5000/api/v1/borrow/history`);
-        if (response.ok) {
-          const data = await response.json();
-          setHistoryList(data.data || []);
+        const response = await API.get(`/api/v1/borrow/history`);
+        if (response.data) {
+          setHistoryList(response.data.data || []);
         }
       }
     } catch (err) {

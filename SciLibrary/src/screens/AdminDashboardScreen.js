@@ -266,40 +266,47 @@ export default function AdminDashboardScreen({ navigation }) {
             data={books}
             keyExtractor={(item) => item._id || item.id?.toString()}
             renderItem={renderItem}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.brand.primary]} />}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No books found.</Text>
+              </View>
+            }
           />
         )
       ) : activeTab === 'fines' ? (
-        loadingFines ? (
+        loadingFines && unpaidFines.length === 0 ? (
           <ActivityIndicator size="large" color={COLORS.brand.primary} style={{ marginTop: 50 }} />
-        ) : unpaidFines.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No unpaid fines.</Text>
-          </View>
         ) : (
           <FlatList
             data={unpaidFines}
             keyExtractor={(item) => item.id?.toString()}
             renderItem={renderFineItem}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.brand.primary]} />}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No unpaid fines.</Text>
+              </View>
+            }
           />
         )
       ) : (
-        loadingBanned ? (
+        loadingBanned && bannedUsers.length === 0 ? (
           <ActivityIndicator size="large" color={COLORS.brand.primary} style={{ marginTop: 50 }} />
-        ) : bannedUsers.length === 0 ? (
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyStateText}>No banned users.</Text>
-          </View>
         ) : (
           <FlatList
             data={bannedUsers}
             keyExtractor={(item) => item.id?.toString()}
             renderItem={renderBannedUserItem}
-            contentContainerStyle={{ paddingBottom: 80 }}
-            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            contentContainerStyle={{ paddingBottom: 80, flexGrow: 1 }}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[COLORS.brand.primary]} />}
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyStateText}>No banned users.</Text>
+              </View>
+            }
           />
         )
       )}

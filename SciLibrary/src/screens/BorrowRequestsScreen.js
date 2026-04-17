@@ -305,7 +305,7 @@ export default function BorrowRequestsScreen({ navigation }) {
                 onPress={() => handleReturnOpen(item)}
                 disabled={actionLoading}
               >
-                <Icon name="undo" size={16} color={COLORS.brand.primary} />
+                <Icon name="corner-down-left" size={16} color={COLORS.brand.primary} />
                 <Text style={styles.returnBtnText}>Return</Text>
               </TouchableOpacity>
               <TouchableOpacity
