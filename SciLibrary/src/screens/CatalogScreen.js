@@ -6,6 +6,7 @@ import {
   Text,
   TextInput,
   View,
+  RefreshControl,
 } from 'react-native';
 import { useSelector, useDispatch } from 'react-redux';
 import { fetchAllBooks, resetBookSlice } from '../store/books';
@@ -20,6 +21,13 @@ export default function CatalogScreen({ navigation }) {
   const { books, loading, error } = useSelector((state) => state.book);
   const [selectedGenre, setSelectedGenre] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(fetchAllBooks());
+    setRefreshing(false);
+  };
 
   useEffect(() => {
     dispatch(fetchAllBooks());
@@ -103,6 +111,7 @@ export default function CatalogScreen({ navigation }) {
             <Text style={styles.emptySubtitle}>Try a different keyword or genre</Text>
           </View>
         }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       />
     </View>
   );

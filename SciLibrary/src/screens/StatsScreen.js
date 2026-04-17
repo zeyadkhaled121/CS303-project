@@ -9,7 +9,7 @@ import {
   Dimensions,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import Icon from 'react-native-vector-icons/FontAwesome';
+import { FontAwesome as Icon } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import API from '../api/axios';
 import { COLORS } from '../../shared/designTokens';

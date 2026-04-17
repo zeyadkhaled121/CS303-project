@@ -12,6 +12,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import { fetchAllBooks } from '../store/books';
 import { fetchNotifications } from '../store/slices/notificationSlice';
 import { fetchUserBorrowedBooks } from '../store/slices/borrowSlice';
+import { getUser } from '../store/slices/authSlice';
 import { COLORS } from '../../shared/designTokens';
 import { isBorrowActive, normalizeBorrowRecord } from '../utils/dataShapeNormalizer';
 import { safeExtractDate } from '../utils/borrowUtils';
@@ -26,6 +27,7 @@ export default function HomeScreen({ navigation }) {
 
   const refreshAll = async () => {
     await Promise.all([
+      dispatch(getUser()),
       dispatch(fetchAllBooks()),
       dispatch(fetchUserBorrowedBooks()),
       dispatch(fetchNotifications()),
@@ -133,6 +135,34 @@ export default function HomeScreen({ navigation }) {
           <Text style={styles.progressCaption}>books available</Text>
         </View>
       </View>
+
+      {user?.isBanned && (
+        <View style={styles.bannedBanner}>
+          <MaterialCommunityIcons name="cancel" size={24} color="#f87171" />
+          <View style={styles.restrictionTextWrap}>
+            <Text style={styles.restrictionTitle}>
+              Your account has been banned.
+            </Text>
+            <Text style={styles.restrictionSubtitle}>
+              You can no longer borrow books. Please contact an administrator.
+            </Text>
+          </View>
+        </View>
+      )}
+
+      {!user?.isBanned && Number(user?.fines || 0) > 0 && (
+        <View style={styles.restrictionBanner}>
+          <MaterialCommunityIcons name="alert-octagon" size={24} color="#b91c1c" />
+          <View style={styles.restrictionTextWrap}>
+            <Text style={styles.restrictionTitle}>
+              Your account is restricted due to unpaid fines (${Number(user?.fines || 0).toFixed(2)}).
+            </Text>
+            <Text style={styles.restrictionSubtitle}>
+              Please pay your fines to resume borrowing.
+            </Text>
+          </View>
+        </View>
+      )}
 
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Your Library Activity</Text>
@@ -487,4 +517,41 @@ const styles = StyleSheet.create({
     color: COLORS.text.secondary,
     fontWeight: '700',
   },
+  bannedBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#fff1f2',
+    borderWidth: 1,
+    borderColor: '#fecdd3',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'flex-start',
+    gap: 12,
+    elevation: 2,
+    shadowColor: '#be123c',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  restrictionBanner: {
+    flexDirection: 'row',
+    backgroundColor: '#fefce8',
+    borderWidth: 1,
+    borderColor: '#fef08a',
+    borderRadius: 8,
+    padding: 16,
+    marginHorizontal: 20,
+    marginBottom: 20,
+    alignItems: 'flex-start',
+    gap: 12,
+    elevation: 2,
+    shadowColor: '#eab308',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+  },
+  restrictionTextWrap: { flex: 1 },
+  restrictionTitle: { fontSize: 13, fontWeight: 'bold', color: '#b91c1c', marginBottom: 2, lineHeight: 18 },
+  restrictionSubtitle: { fontSize: 11, color: '#991b1b', lineHeight: 16 },
 });

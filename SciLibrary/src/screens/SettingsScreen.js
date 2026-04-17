@@ -9,9 +9,10 @@ import {
   TouchableOpacity,
   Alert,
   ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { useDispatch, useSelector } from 'react-redux';
-import { logout } from '../store/slices/authSlice';
+import { logout, getUser } from '../store/slices/authSlice';
 import api from '../api/axios';
 import { COLORS, SPACING, BORDER_RADIUS, TYPOGRAPHY, SHADOWS } from '../../shared/designTokens';
 
@@ -19,6 +20,7 @@ const SettingsScreen = ({ navigation }) => {
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.auth);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [oldPassword, setOldPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -30,6 +32,12 @@ const SettingsScreen = ({ navigation }) => {
 
   const walletBalance = useMemo(() => Number(user?.walletBalance ?? user?.wallet ?? 0), [user]);
   const fineAmount = useMemo(() => Number(user?.fine ?? user?.fines ?? 0), [user]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await dispatch(getUser());
+    setRefreshing(false);
+  };
 
   const handleLogout = () => {
     Alert.alert('Sign out', 'Are you sure you want to sign out?', [
@@ -83,7 +91,13 @@ const SettingsScreen = ({ navigation }) => {
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+        }
+      >
         <View style={styles.headerCard}>
           <Text style={styles.eyebrow}>ACCOUNT</Text>
           <Text style={styles.title}>{user?.name || 'Library Member'}</Text>
