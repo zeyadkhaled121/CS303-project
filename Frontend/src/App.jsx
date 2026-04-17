@@ -24,19 +24,32 @@ const App = () => {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
   const [isSideBarOpen, setIsSideBarOpen] = useState(true);
-  const [selectedComponent, setSelectedComponent] = useState("Dashboard");
+  const [selectedComponent, setSelectedComponent] = useState(() => {
+    return sessionStorage.getItem("selectedComponent") || "Dashboard";
+  });
   const [searchTerm, setSearchTerm] = useState("");
 
-  /**
-   * WATCHER: Reset Logic
-   * This effect triggers whenever the user identity OR their role changes.
-   * It ensures that an Admin switching to User view (or vice-versa) 
-   * starts fresh on the Dashboard with a clean search bar.
-   */
   useEffect(() => {
-    setSelectedComponent("Dashboard");
-    setSearchTerm(""); // Reset search bar on role/user change
-  }, [user?._id, user?.role]); 
+    sessionStorage.setItem("selectedComponent", selectedComponent);
+  }, [selectedComponent]);
+
+
+  useEffect(() => {
+    if (user && user._id) {
+      const sessionUser = sessionStorage.getItem("loggedUserId");
+      const sessionRole = sessionStorage.getItem("loggedUserRole");
+      
+      // Only reset the view if this is actually a DIFFERENT user logging in
+      // or if their role was just changed dynamically.
+      if (sessionUser && (sessionUser !== user._id || sessionRole !== user.role)) {
+        setSelectedComponent("Dashboard");
+        setSearchTerm("");
+      }
+      
+      sessionStorage.setItem("loggedUserId", user._id);
+      sessionStorage.setItem("loggedUserRole", user.role);
+    }
+  }, [user]); 
 
   useEffect(() => {
     dispatch(getUser());

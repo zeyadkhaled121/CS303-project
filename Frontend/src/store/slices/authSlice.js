@@ -9,7 +9,8 @@ const getErrorMsg = (error) =>
 const authSlice = createSlice({
   name: "auth",
   initialState: {
-    loading: false,
+    loading: true,
+    isInitialized: false,
     error: null,
     message: null,
     user: null,
@@ -88,11 +89,13 @@ const authSlice = createSlice({
     },
     getUserSuccess(state, action) {
         state.loading = false;
+        state.isInitialized = true;
         state.user = action.payload.data?.user || null;
         state.isAuthenticated = true;
     },
     getUserFailed(state) {
         state.loading = false;
+        state.isInitialized = true;
         state.user = null;
         state.isAuthenticated = false;
     },

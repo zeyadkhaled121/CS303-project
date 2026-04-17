@@ -26,7 +26,7 @@ import { getAllUsers } from "../store/slices/authSlice";
 
 const Home = ({ selectedComponent, searchTerm , setSelectedComponent}) => {
   const dispatch = useDispatch();
-  const { user, isAuthenticated } = useSelector((state) => state.auth);
+  const { user, isAuthenticated, isInitialized } = useSelector((state) => state.auth);
   const { books, loading: booksLoading } = useSelector((state) => state.book);
   const { AddNewAdminPopup } = useSelector((state) => state.popup);
   const location = useLocation();
@@ -48,6 +48,14 @@ const Home = ({ selectedComponent, searchTerm , setSelectedComponent}) => {
       }
     }
   }, [dispatch, isAuthenticated, user?.role]);
+
+  if (!isInitialized) {
+    return (
+      <div className="flex justify-center items-center h-[calc(100vh-64px)]">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#358a74]"></div>
+      </div>
+    );
+  }
 
   const filteredBooks = books?.filter((book) => {
     if (!searchTerm) return true;

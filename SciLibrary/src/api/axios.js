@@ -1,7 +1,7 @@
 import axios from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
-const MY_IP_ADDRESS = '192.168.1.25'; //Put ur Laptop's IP address here
+const MY_IP_ADDRESS = '192.168.1.5'; //Put ur Laptop's IP address here
 
 const baseURL = __DEV__ ? `http://${MY_IP_ADDRESS}:5000` : 'https://api.your-production-domain.com';
 
