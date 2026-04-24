@@ -11,11 +11,11 @@
 
 
 # Dependencies
-ExpressJS
-NodeJs
-ReactJS
-bcrypt
-Firestore
+ExpressJS <br>
+NodeJs <br>
+ReactJS <br>
+bcrypt <br>
+Firestore <br>
 
 # Project Overview
 
