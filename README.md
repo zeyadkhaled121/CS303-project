@@ -1,5 +1,5 @@
 # CS303-project-Team
-=====
+
 
 
 1- Zeyad Khaled >> 2327001
@@ -9,7 +9,6 @@
 5- Alaa Maher >>2027159
 6- Baraa Amir >> 2331059
 
-=====
 
 # Dependencies
 ExpressJS
@@ -18,14 +17,12 @@ ReactJS
 bcrypt
 Firestore
 
-=======
 # Project Overview
-==================
+
 
 This repository contains a Library Management System designed to streamline library operations for both administrators and members. The system automates the core processes of managing book inventories, tracking user borrowing activities, enforcing library policies, and community contributions.
 
 ## Key Features
-===============
 
 #### Book & Inventory Management: Easily add, update, search, and track the availability of books within the library.
 
