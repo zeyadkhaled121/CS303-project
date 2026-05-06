@@ -18,6 +18,7 @@ NodeJs <br>
 ReactJS <br>
 bcrypt <br>
 Firestore <br>
+GroqAI api <br>
 
 # Project Overview
 
