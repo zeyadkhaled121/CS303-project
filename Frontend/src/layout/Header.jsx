@@ -389,41 +389,41 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
 
   return (
     <>
-      <header className="fixed top-0 left-0 w-full bg-[#358a74] py-3 px-8 flex items-center justify-between z-50 h-20 shadow-2xl font-sans">
+      <header className="fixed top-0 left-0 w-full bg-[#358a74] py-3 px-4 sm:px-6 lg:px-8 flex items-center justify-between z-50 h-20 shadow-2xl font-sans max-sm:px-3 max-sm:py-2 max-sm:h-16">
       
       {/* --- Logo Section --- */}
-      <div className="flex items-center h-full">
+      <div className="flex items-center h-full shrink-0 mr-2">
         <div 
-          className="cursor-pointer flex items-center group" 
+          className="cursor-pointer flex items-center group shrink-0" 
           onClick={() => { setSelectedComponent("Dashboard"); navigateTo("/"); }}
         >
-          <img src={logoImg} alt="Library Logo" className="h-16 w-auto object-contain group-hover:scale-105 transition-transform duration-500" />
+          <img src={logoImg} alt="Library Logo" className=" h-16 w-auto object-contain group-hover:scale-105 transition-transform duration-500 max-sm:h-12" />
         </div>
       </div>
 
       {/* --- Search Bar Section --- */}
-      <div className={`flex-1 max-w-xl mx-12 ${location.pathname === "/settings" ? "invisible" : ""}`}>
+      <div className={`flex-1 max-w-xl mx-4 sm:mx-8 lg:mx-12 max-sm:mx-2 ${location.pathname === "/settings" ? "invisible" : ""}`}>
         <div className="relative group">
           <input
             type="text"
             placeholder="Search assets, records..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full h-12 text-[13px] font-medium text-white placeholder:text-emerald-100/50 bg-white/10 hover:bg-white/15 focus:bg-white/20 rounded-2xl py-2 pl-12 pr-4 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all duration-500 border border-white/5"
+            className="max-sm:w-32 max-sm:h-10 max-sm:text-[11px] max-sm:pl-3 max-sm:pr-2 w-full h-12 text-[13px] font-medium text-white placeholder:text-emerald-100/50 bg-white/10 hover:bg-white/15 focus:bg-white/20 rounded-2xl py-2 pl-12 pr-4 focus:outline-none focus:ring-1 focus:ring-white/30 transition-all duration-500 border border-white/5"
           />
-          <FaSearch className="absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white transition-colors" size={14} />
+          <FaSearch className="max-sm:hidden absolute left-5 top-1/2 -translate-y-1/2 text-white/40 group-focus-within:text-white transition-colors" size={14} />
         </div>
       </div>
 
       {/* --- Actions Section --- */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-4 max-sm:gap-2">
         {isAuthenticated && user ? (
           <>
             {/* UNIFIED NOTIFICATION HUB */}
               <div className="relative" ref={notiRef}>
                 <button
                   onClick={throttledNotiClick}
-                  className={`p-3 rounded-2xl transition-all duration-500 relative ${notiOpen ? "bg-white text-[#358a74] shadow-lg" : "hover:bg-white/10 text-white"}`}
+                  className={`p-3 rounded-2xl transition-all duration-500 relative max-sm:p-2 ${notiOpen ? "bg-white text-[#358a74] shadow-lg" : "hover:bg-white/10 text-white"}`}
                 >
                   <FaBell size={20} />
                   {unreadNotiCount > 0 && (
@@ -433,7 +433,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
 
                 {/* Dropdown Menu */}
                 {notiOpen && (
-                  <div className="absolute top-full mt-4 right-0 w-[400px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 z-50 border border-emerald-50 overflow-hidden animate-fadeIn">
+                  <div className="absolute top-full mt-4 right-0 w-[400px] bg-white rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.15)] py-2 z-50 border border-emerald-50 overflow-hidden animate-fadeIn max-sm:!fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto max-sm:rounded-2xl max-sm:max-h-[80vh]">
                     <div className="px-8 py-6 border-b border-gray-50 flex justify-between items-center bg-emerald-50/20">
                       <div>
                         <h3 className="font-black text-[10px] uppercase tracking-[0.2em] text-gray-400">Notifications</h3>
@@ -501,9 +501,9 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={throttledDropdownClick}
-                className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-2xl hover:bg-white/20 transition-all border border-white/5"
+                className="flex items-center gap-3 bg-white/10 px-4 py-2 rounded-2xl hover:bg-white/20 transition-all border border-white/5 max-sm:px-2 max-sm:py-1.5 max-sm:gap-1.5"
               >
-                <div className="w-9 h-9 rounded-xl bg-white text-[#358a74] flex items-center justify-center font-black shadow-lg uppercase text-sm">
+                <div className="w-9 h-9 rounded-xl bg-white text-[#358a74] flex items-center justify-center font-black shadow-lg uppercase text-sm max-sm:w-8 max-sm:h-8 max-sm:text-xs">
                   {user.name?.charAt(0)}
                 </div>
                 <div className="text-left hidden xl:block">
@@ -514,7 +514,7 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
               </button>
 
               {dropdownOpen && (
-                <div className="absolute top-full mt-4 right-0 w-60 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] py-3 z-50 border border-gray-100 animate-fadeIn overflow-hidden">
+                <div className="absolute top-full mt-4 right-0 w-60 bg-white rounded-[2rem] shadow-[0_20px_50px_rgba(0,0,0,0.1)] py-3 z-50 border border-gray-100 animate-fadeIn overflow-hidden max-sm:!fixed max-sm:left-4 max-sm:right-4 max-sm:w-auto">
                   <div className="px-6 py-4 border-b border-gray-50 mb-2 text-left">
                     <p className="text-[9px] font-black text-gray-300 uppercase tracking-widest">Account</p>
                     <p className="text-xs font-bold text-gray-700 truncate mt-1">{user.email}</p>
@@ -538,14 +538,39 @@ const Header = ({ setSelectedComponent, searchTerm, setSearchTerm }) => {
           </>
         ) : (
           /* GUEST VIEW */
-          <div className="flex items-center gap-4">
-            <button onClick={() => navigateTo("/login")} className="text-white text-[11px] font-black uppercase tracking-widest px-6 py-3 hover:bg-white/10 transition-all rounded-xl border border-white/20">
-              Sign In
-            </button>
-            <button onClick={() => navigateTo("/register")} className="bg-white text-[#358a74] text-[11px] font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all">
-              Register
-            </button>
-          </div>
+          <div className="flex items-center gap-3">
+  {/* Desktop Login */}
+  <button
+    onClick={() => navigateTo("/login")}
+    className="max-sm:hidden text-white text-[11px] font-black uppercase tracking-widest px-6 py-3 hover:bg-white/10 transition-all rounded-xl border border-white/20"
+  >
+    Sign In
+  </button>
+
+  {/* Mobile Login */}
+  <button
+    onClick={() => navigateTo("/login")}
+    className="sm:hidden w-10 h-10 flex items-center justify-center text-white rounded-xl border border-white/20 hover:bg-white/10 transition-all"
+  >
+    <i className="fa-solid fa-arrow-right-from-bracket text-sm"></i>
+  </button>
+
+  {/* Desktop Register */}
+  <button
+    onClick={() => navigateTo("/register")}
+    className="max-sm:hidden bg-white text-[#358a74] text-[11px] font-black uppercase tracking-widest px-6 py-3 rounded-xl hover:shadow-xl hover:-translate-y-0.5 transition-all"
+  >
+    Register
+  </button>
+
+  {/* Mobile Register */}
+  <button
+    onClick={() => navigateTo("/register")}
+    className="sm:hidden w-10 h-10 flex items-center justify-center bg-white text-[#358a74] rounded-xl hover:shadow-xl transition-all"
+  >
+    <i className="fa-regular fa-id-card text-sm"></i>
+  </button>
+</div>
         )}
       </div>
     </header>

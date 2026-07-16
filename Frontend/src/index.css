@@ -5,133 +5,185 @@
 
 /* ── AI Chat Theme Variables ── */
 :root {
-  --ai-primary: #358a74;
-  --ai-primary-dark: #2d7a68;
+    --ai-primary: #358a74;
+    --ai-primary-dark: #2d7a68;
 }
 
 * {
-  font-optical-sizing: auto;
-  font-style: normal;
-  box-sizing: border-box;
+    font-optical-sizing: auto;
+    font-style: normal;
+    box-sizing: border-box;
 }
 
 /* ── AI Chat Animations ── */
 @keyframes aiFabPulse {
-  0%, 100% { box-shadow: 0 8px 30px rgba(53, 138, 116, 0.4); }
-  50% { box-shadow: 0 8px 40px rgba(53, 138, 116, 0.65); }
+    0%,
+    100% {
+        box-shadow: 0 8px 30px rgba(53, 138, 116, 0.4);
+    }
+    50% {
+        box-shadow: 0 8px 40px rgba(53, 138, 116, 0.65);
+    }
 }
 
 .ai-fab-pulse {
-  animation: aiFabPulse 2.5s ease-in-out infinite;
+    animation: aiFabPulse 2.5s ease-in-out infinite;
 }
 
 @keyframes aiTypingBounce {
-  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-  30% { transform: translateY(-6px); opacity: 1; }
+    0%,
+    60%,
+    100% {
+        transform: translateY(0);
+        opacity: 0.4;
+    }
+    30% {
+        transform: translateY(-6px);
+        opacity: 1;
+    }
 }
 
 .ai-typing-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background-color: var(--ai-primary);
-  display: inline-block;
-  animation: aiTypingBounce 1.2s ease-in-out infinite;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background-color: var(--ai-primary);
+    display: inline-block;
+    animation: aiTypingBounce 1.2s ease-in-out infinite;
 }
 
 @keyframes aiMsgEnter {
-  from { opacity: 0; transform: translateY(8px); }
-  to { opacity: 1; transform: translateY(0); }
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .ai-msg-enter {
-  animation: aiMsgEnter 0.3s ease-out;
+    animation: aiMsgEnter 0.3s ease-out;
 }
 
 /* AI Chat scrollbar */
 .ai-chat-scrollbar::-webkit-scrollbar {
-  width: 5px;
+    width: 5px;
 }
 .ai-chat-scrollbar::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 .ai-chat-scrollbar::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 10px;
+    background: #d1d5db;
+    border-radius: 10px;
 }
 .ai-chat-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+    background: #9ca3af;
 }
 
-html, body {
-  overflow-x: hidden;
+html,
+body {
+    overflow-x: hidden;
 }
 
 /* Hide number input spinner arrows */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
+    -webkit-appearance: none;
+    margin: 0;
 }
 input[type="number"] {
-  -moz-appearance: textfield;
+    -moz-appearance: textfield;
 }
 
 @keyframes notificationSlideIn {
-  0% {
-    opacity: 0;
-    transform: translate3d(24px, -12px, 0) scale(0.96);
-  }
-  100% {
-    opacity: 1;
-    transform: translate3d(0, 0, 0) scale(1);
-  }
+    0% {
+        opacity: 0;
+        transform: translate3d(24px, -12px, 0) scale(0.96);
+    }
+    100% {
+        opacity: 1;
+        transform: translate3d(0, 0, 0) scale(1);
+    }
 }
 
 @keyframes notificationSoftPulse {
-  0%,
-  100% {
-    box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
-  }
-  50% {
-    box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
-  }
+    0%,
+    100% {
+        box-shadow: 0 20px 45px rgba(15, 23, 42, 0.12);
+    }
+    50% {
+        box-shadow: 0 26px 60px rgba(15, 23, 42, 0.18);
+    }
 }
 
 .notification-popup-card {
-  position: relative;
-  overflow: hidden;
-  border-radius: 1.25rem;
-  border: 1px solid rgba(15, 23, 42, 0.08);
-  background: linear-gradient(140deg, rgba(255, 255, 255, 0.98), rgba(240, 251, 247, 0.96));
-  backdrop-filter: blur(10px);
-  animation: notificationSoftPulse 4s ease-in-out infinite;
+    position: relative;
+    overflow: hidden;
+    border-radius: 1.25rem;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    background: linear-gradient(
+        140deg,
+        rgba(255, 255, 255, 0.98),
+        rgba(240, 251, 247, 0.96)
+    );
+    backdrop-filter: blur(10px);
+    animation: notificationSoftPulse 4s ease-in-out infinite;
 }
 
 .notification-popup-enter {
-  animation: notificationSlideIn 280ms cubic-bezier(0.22, 1, 0.36, 1), notificationSoftPulse 4s ease-in-out infinite;
+    animation:
+        notificationSlideIn 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        notificationSoftPulse 4s ease-in-out infinite;
 }
 
 .notification-popup-action {
-  width: 100%;
-  height: 2.25rem;
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  border-radius: 0.8rem;
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.08), rgba(16, 185, 129, 0.12));
-  color: #0f766e;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  transition: all 220ms ease;
+    width: 100%;
+    height: 2.25rem;
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 0.8rem;
+    background: linear-gradient(
+        135deg,
+        rgba(6, 182, 212, 0.08),
+        rgba(16, 185, 129, 0.12)
+    );
+    color: #0f766e;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    transition: all 220ms ease;
 }
 
 .notification-popup-action:hover {
-  background: linear-gradient(135deg, rgba(6, 182, 212, 0.16), rgba(16, 185, 129, 0.2));
-  color: #0f766e;
-  transform: translateY(-1px);
+    background: linear-gradient(
+        135deg,
+        rgba(6, 182, 212, 0.16),
+        rgba(16, 185, 129, 0.2)
+    );
+    color: #0f766e;
+    transform: translateY(-1px);
+}
+textarea {
+    resize: none;
+}
+textarea:focus {
+    outline: none;
+    box-shadow: none;
+}
+
+.propose-h1 {
+    font-family:
+        ui-sans-serif,
+        system-ui,
+        sans-serif,
+        "Apple Color Emoji",
+        "Segoe UI Emoji",
+        Segoe UI Symbol,
+        "Noto Color Emoji";
 }
